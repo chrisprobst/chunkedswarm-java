@@ -22,5 +22,16 @@ repositories {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
 
+    // netty support
     compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha3-SNAPSHOT'
+
+    // ffmpeg support
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'macosx-x86_64'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'windows-x86_64'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'windows-x86'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'linux-x86_64'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'linux-x86'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'android-arm'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'android-x86'
 }
