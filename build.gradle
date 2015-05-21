@@ -25,7 +25,7 @@ dependencies {
     // netty support
     compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha3-SNAPSHOT'
 
-    // ffmpeg support
+    // ffmpeg support (native library extraction not needed, javacpp does this by its own)
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11'
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'macosx-x86_64'
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.6.1-0.11', classifier: 'windows-x86_64'
