@@ -9,14 +9,7 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class DistributorHandler extends ChannelHandlerAdapter {
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        System.out.println(msg);
-
-
-
-    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

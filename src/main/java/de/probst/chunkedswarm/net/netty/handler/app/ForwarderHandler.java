@@ -9,16 +9,6 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class ForwarderHandler extends ChannelHandlerAdapter {
 
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
-
-        ctx.writeAndFlush("Hello Distributor!").addListener(fut -> {
-           if(!fut.isSuccess()) {
-               fut.cause().printStackTrace();
-           }
-        });
-    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

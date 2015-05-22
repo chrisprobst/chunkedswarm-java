@@ -1,11 +1,10 @@
 package de.probst.chunkedswarm;
 
-import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
+import de.probst.chunkedswarm.distributor.Distributor;
 import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
-import de.probst.chunkedswarm.net.netty.handler.codec.ChunkedSwarmDecoder;
-import de.probst.chunkedswarm.net.netty.handler.codec.ChunkedSwarmEncoder;
+import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
+import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdCollectionHandler;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -14,13 +13,13 @@ import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -31,27 +30,9 @@ import java.util.stream.IntStream;
  */
 public class Main {
 
-    private static Channel startDistributor(EventLoopGroup eventLoopGroup) throws InterruptedException {
-        ServerBootstrap serverBootstrap = new ServerBootstrap();
-        serverBootstrap.group(eventLoopGroup)
-                       .channel(NioServerSocketChannel.class)
-                       .option(ChannelOption.SO_BACKLOG, 256)
-                       .childOption(ChannelOption.TCP_NODELAY, true)
-                       .childHandler(new ChannelInitializer<SocketChannel>() {
-                           @Override
-                           protected void initChannel(SocketChannel ch) throws Exception {
-                               //ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
-                               ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
-                               ch.pipeline().addLast(new LengthFieldPrepender(4));
-                               ch.pipeline().addLast(new ChunkedSwarmDecoder());
-                               ch.pipeline().addLast(new ChunkedSwarmEncoder());
-                               ch.pipeline().addLast(new DistributorHandler());
-                           }
-                       });
-        return serverBootstrap.bind(1337).sync().channel();
-    }
 
     private static List<Channel> startForwarder(EventLoopGroup eventLoopGroup) throws InterruptedException {
+        AtomicInteger portCounter = new AtomicInteger(20000);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup)
                  .channel(NioSocketChannel.class)
@@ -62,8 +43,11 @@ public class Main {
                          //ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                          ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
                          ch.pipeline().addLast(new LengthFieldPrepender(4));
-                         ch.pipeline().addLast(new ChunkedSwarmDecoder());
-                         ch.pipeline().addLast(new ChunkedSwarmEncoder());
+                         ch.pipeline().addLast(new SimpleCodec());
+
+
+                         ch.pipeline().addLast(new SwarmIdCollectionHandler(portCounter.getAndIncrement()));
+
                          ch.pipeline().addLast(new ForwarderHandler());
                      }
                  });
@@ -77,7 +61,9 @@ public class Main {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         ChannelGroup channels = new DefaultChannelGroup(eventLoopGroup.next());
         try {
-            channels.add(startDistributor(eventLoopGroup));
+            Distributor distributor = new Distributor(eventLoopGroup);
+
+            channels.add(distributor.getServerChannel());
             channels.addAll(startForwarder(eventLoopGroup));
             System.in.read();
         } finally {
