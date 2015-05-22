@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.graph;
+package de.probst.chunkedswarm.util.graph;
 
 import java.util.HashSet;
 import java.util.Objects;

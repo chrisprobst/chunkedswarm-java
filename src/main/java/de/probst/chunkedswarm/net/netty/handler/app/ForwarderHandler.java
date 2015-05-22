@@ -9,6 +9,11 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class ForwarderHandler extends ChannelHandlerAdapter {
 
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("Inactive");
+        super.channelInactive(ctx);
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
