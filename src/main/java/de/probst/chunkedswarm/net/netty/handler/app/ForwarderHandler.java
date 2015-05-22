@@ -13,7 +13,7 @@ public class ForwarderHandler extends ChannelHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
 
 
-        ctx.write("Hello Distributor!").addListener(fut -> {
+        ctx.writeAndFlush("Hello Distributor!").addListener(fut -> {
            if(!fut.isSuccess()) {
                fut.cause().printStackTrace();
            }

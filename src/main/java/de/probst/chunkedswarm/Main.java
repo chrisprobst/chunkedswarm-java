@@ -2,6 +2,8 @@ package de.probst.chunkedswarm;
 
 import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
 import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
+import de.probst.chunkedswarm.net.netty.handler.codec.ChunkedSwarmDecoder;
+import de.probst.chunkedswarm.net.netty.handler.codec.ChunkedSwarmEncoder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -14,8 +16,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,10 +36,15 @@ public class Main {
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
                        .option(ChannelOption.SO_BACKLOG, 256)
-                       .handler(new LoggingHandler(LogLevel.INFO))
+                       .childOption(ChannelOption.TCP_NODELAY, true)
                        .childHandler(new ChannelInitializer<SocketChannel>() {
                            @Override
                            protected void initChannel(SocketChannel ch) throws Exception {
+                               //ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+                               ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
+                               ch.pipeline().addLast(new LengthFieldPrepender(4));
+                               ch.pipeline().addLast(new ChunkedSwarmDecoder());
+                               ch.pipeline().addLast(new ChunkedSwarmEncoder());
                                ch.pipeline().addLast(new DistributorHandler());
                            }
                        });
@@ -52,12 +59,16 @@ public class Main {
                  .handler(new ChannelInitializer<SocketChannel>() {
                      @Override
                      protected void initChannel(SocketChannel ch) throws Exception {
-                         ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+                         //ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
+                         ch.pipeline().addLast(new LengthFieldPrepender(4));
+                         ch.pipeline().addLast(new ChunkedSwarmDecoder());
+                         ch.pipeline().addLast(new ChunkedSwarmEncoder());
                          ch.pipeline().addLast(new ForwarderHandler());
                      }
                  });
 
-        return IntStream.range(0, 10)
+        return IntStream.range(0, 4)
                         .mapToObj(i -> bootstrap.connect("localhost", 1337).channel())
                         .collect(Collectors.toList());
     }
