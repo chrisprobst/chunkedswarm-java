@@ -1,13 +1,12 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
-import de.probst.chunkedswarm.net.netty.util.ChannelFutureListeners;
+import de.probst.chunkedswarm.net.netty.util.ChannelUtil;
 import de.probst.chunkedswarm.util.SwarmId;
 import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -23,14 +22,15 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     // The local swarm id
     private volatile Optional<SwarmId> localSwarmId = Optional.empty();
 
-    private void readPort(ChannelHandlerContext ctx, SocketAddress socketAddress) {
+    private void setCollectorAddress(ChannelHandlerContext ctx, SetCollectorAddressMessage setCollectorAddressMessage) {
         // We only support tcp/udp yet
-        if (!(socketAddress instanceof InetSocketAddress)) {
-            throw new IllegalArgumentException("!(socketAddress instanceof InetSocketAddress)");
+        if (!(setCollectorAddressMessage.getCollectorAddress() instanceof InetSocketAddress)) {
+            throw new IllegalArgumentException("!(setCollectorAddressMessage.getCollectorAddress() " +
+                                               "instanceof InetSocketAddress)");
         }
 
         // Extract port
-        int port = ((InetSocketAddress) socketAddress).getPort();
+        int port = ((InetSocketAddress) setCollectorAddressMessage.getCollectorAddress()).getPort();
 
         // TODO: Cast to inet socket address, so be careful with differeny socket types!
         InetSocketAddress inetSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
@@ -42,7 +42,8 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         localSwarmId = Optional.of(newLocalSwarmId);
 
         // Send the new local swarm id to the remote
-        ctx.writeAndFlush(newLocalSwarmId).addListener(ChannelFutureListeners.REPORT_IF_FAILED);
+        ctx.writeAndFlush(new SetLocalSwarmIdMessage(newLocalSwarmId))
+           .addListener(ChannelUtil.REPORT_IF_FAILED_LISTENER);
     }
 
     public SwarmIdRegistrationHandler(SwarmIdManager swarmIdManager) {
@@ -56,10 +57,10 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (!localSwarmId.isPresent() && !(msg instanceof SocketAddress)) {
-            throw new IllegalStateException("!localSwarmId.isPresent() && !(msg instanceof SocketAddress)");
-        } else if (!localSwarmId.isPresent() && msg instanceof SocketAddress) {
-            readPort(ctx, (SocketAddress) msg);
+        if (!localSwarmId.isPresent() && !(msg instanceof SetCollectorAddressMessage)) {
+            throw new IllegalStateException("!localSwarmId.isPresent() && !(msg instanceof SetCollectorAddressMessage)");
+        } else if (!localSwarmId.isPresent() && msg instanceof SetCollectorAddressMessage) {
+            setCollectorAddress(ctx, (SetCollectorAddressMessage) msg);
         } else {
             super.channelRead(ctx, msg);
         }

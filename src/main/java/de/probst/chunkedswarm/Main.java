@@ -21,7 +21,7 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         try {
-            Distributor distributor = new Distributor(eventLoopGroup, 1337);
+            Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
 
 
             List<Forwarder> forwarders = new ArrayList<>(4);

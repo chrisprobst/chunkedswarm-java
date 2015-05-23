@@ -19,6 +19,7 @@ import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.Objects;
 
 /**
@@ -29,11 +30,10 @@ public final class Distributor implements Closeable {
 
     private final SwarmIdManager swarmIdManager;
     private final EventLoopGroup eventLoopGroup;
-    private final int port;
-    private final ServerChannel forwarderAcceptorChannel;
+    private final SocketAddress socketAddress;
     private final ChannelGroup forwarderChannels, allChannels;
 
-    private ServerChannel openForwarderAcceptChannel() {
+    private void openForwarderAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
@@ -65,37 +65,18 @@ public final class Distributor implements Closeable {
                                ch.pipeline().addLast(new DistributorHandler());
                            }
                        });
-        return (ServerChannel) serverBootstrap.bind(port).syncUninterruptibly().channel();
+        serverBootstrap.bind(socketAddress).syncUninterruptibly();
     }
 
-    public Distributor(EventLoopGroup eventLoopGroup, int port) {
+    public Distributor(EventLoopGroup eventLoopGroup, SocketAddress socketAddress) {
         Objects.requireNonNull(eventLoopGroup);
+        Objects.requireNonNull(socketAddress);
         swarmIdManager = new SwarmIdManager();
         this.eventLoopGroup = eventLoopGroup;
-        this.port = port;
+        this.socketAddress = socketAddress;
         forwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
-        forwarderAcceptorChannel = openForwarderAcceptChannel();
-    }
-
-    public EventLoopGroup getEventLoopGroup() {
-        return eventLoopGroup;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public ServerChannel getForwarderAcceptorChannel() {
-        return forwarderAcceptorChannel;
-    }
-
-    public ChannelGroup getForwarderChannels() {
-        return forwarderChannels;
-    }
-
-    public ChannelGroup getAllChannels() {
-        return allChannels;
+        openForwarderAcceptChannel();
     }
 
     @Override

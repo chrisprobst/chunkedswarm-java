@@ -1,8 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
-import de.probst.chunkedswarm.net.netty.util.ChannelFutureListeners;
+import de.probst.chunkedswarm.net.netty.util.ChannelUtil;
 import de.probst.chunkedswarm.util.SwarmId;
-import de.probst.chunkedswarm.util.SwarmIdSet;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -21,15 +20,15 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     // The local swarm id
     private volatile SwarmId localSwarmId;
 
-    private void readLocalSwarmId(SwarmId swarmId) throws Exception {
+    private void setLocalSwarmId(SetLocalSwarmIdMessage setLocalSwarmIdMessage) throws Exception {
         // Safe the new swarm id
-        localSwarmId = swarmId;
+        localSwarmId = setLocalSwarmIdMessage.getLocalSwarmId();
 
         // TODO: Verify ?
         System.out.println("Got new swarm id: " + localSwarmId);
     }
 
-    private void readNeighbours(SwarmIdSet swarmIdSet) {
+    private void updateNeighbours(UpdateNeighboursMessage updateNeighboursMessage) {
 
     }
 
@@ -53,18 +52,19 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         // Send announce port to remote
-        ctx.writeAndFlush(announceAddress).addListener(ChannelFutureListeners.REPORT_IF_FAILED);
+        ctx.writeAndFlush(new SetCollectorAddressMessage(announceAddress))
+           .addListener(ChannelUtil.REPORT_IF_FAILED_LISTENER);
         super.channelActive(ctx);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (localSwarmId == null && !(msg instanceof SwarmId)) {
-            throw new IllegalStateException("localSwarmId == null && !(msg instanceof SwarmId)");
-        } else if (localSwarmId == null && msg instanceof SwarmId) {
-            readLocalSwarmId((SwarmId) msg);
-        } else if (msg instanceof SwarmIdSet) {
-            readNeighbours((SwarmIdSet) msg);
+        if (localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)) {
+            throw new IllegalStateException("localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)");
+        } else if (localSwarmId == null && msg instanceof SetLocalSwarmIdMessage) {
+            setLocalSwarmId((SetLocalSwarmIdMessage) msg);
+        } else if (msg instanceof UpdateNeighboursMessage) {
+            updateNeighbours((UpdateNeighboursMessage) msg);
         } else {
             super.channelRead(ctx, msg);
         }

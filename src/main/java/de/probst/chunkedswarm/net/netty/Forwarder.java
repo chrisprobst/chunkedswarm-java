@@ -30,12 +30,10 @@ import java.util.Objects;
 public final class Forwarder implements Closeable {
 
     private final EventLoopGroup eventLoopGroup;
-    private final SocketAddress forwarderAcceptorAddress;
-    private final ServerChannel forwarderAcceptorChannel;
-    private final Channel distributorChannel;
-    private final ChannelGroup forwarderChannels, allChannels;
+    private final SocketAddress collectorAcceptorAddress;
+    private final ChannelGroup forwarderChannels, collectorChannels, allChannels;
 
-    private ServerChannel openForwarderAcceptChannel() {
+    private void openCollectorAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
@@ -57,14 +55,14 @@ public final class Forwarder implements Closeable {
                                ch.pipeline().addLast(new SimpleCodec());
 
                                // Track all channels
-                               ch.pipeline().addLast(new ChannelGroupHandler(forwarderChannels));
+                               ch.pipeline().addLast(new ChannelGroupHandler(collectorChannels));
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
                            }
                        });
-        return (ServerChannel) serverBootstrap.bind(forwarderAcceptorAddress).syncUninterruptibly().channel();
+        serverBootstrap.bind(collectorAcceptorAddress).syncUninterruptibly();
     }
 
-    private Channel connectToDistributor(SocketAddress socketAddress) {
+    private void connectToDistributor(SocketAddress socketAddress) {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup)
                  .channel(NioSocketChannel.class)
@@ -83,7 +81,7 @@ public final class Forwarder implements Closeable {
                          ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
 
                          // Handle swarm id management
-                         ch.pipeline().addLast(new SwarmIdCollectionHandler(forwarderAcceptorAddress));
+                         ch.pipeline().addLast(new SwarmIdCollectionHandler(collectorAcceptorAddress));
 
                          // Handle application logic
                          ch.pipeline().addLast(new ForwarderHandler());
@@ -91,45 +89,25 @@ public final class Forwarder implements Closeable {
                  });
 
         // Connect and return channel
-        return bootstrap.connect(socketAddress).syncUninterruptibly().channel();
+        Channel channel = bootstrap.connect(socketAddress).syncUninterruptibly().channel();
+
+        // Close the forwarder, if connection to distributor is lost!
+        channel.closeFuture().addListener(fut -> close());
     }
 
     public Forwarder(EventLoopGroup eventLoopGroup,
-                     SocketAddress forwarderAcceptorAddress,
+                     SocketAddress collectorAcceptorAddress,
                      SocketAddress distributorAddress) {
         Objects.requireNonNull(eventLoopGroup);
-        Objects.requireNonNull(forwarderAcceptorAddress);
+        Objects.requireNonNull(collectorAcceptorAddress);
         Objects.requireNonNull(distributorAddress);
         this.eventLoopGroup = eventLoopGroup;
-        this.forwarderAcceptorAddress = forwarderAcceptorAddress;
+        this.collectorAcceptorAddress = collectorAcceptorAddress;
         forwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        collectorChannels = new DefaultChannelGroup(eventLoopGroup.next());
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
-        forwarderAcceptorChannel = openForwarderAcceptChannel();
-        distributorChannel = connectToDistributor(distributorAddress);
-    }
-
-    public EventLoopGroup getEventLoopGroup() {
-        return eventLoopGroup;
-    }
-
-    public SocketAddress getForwarderAcceptorAddress() {
-        return forwarderAcceptorAddress;
-    }
-
-    public ServerChannel getForwarderAcceptorChannel() {
-        return forwarderAcceptorChannel;
-    }
-
-    public Channel getDistributorChannel() {
-        return distributorChannel;
-    }
-
-    public ChannelGroup getForwarderChannels() {
-        return forwarderChannels;
-    }
-
-    public ChannelGroup getAllChannels() {
-        return allChannels;
+        openCollectorAcceptChannel();
+        connectToDistributor(distributorAddress);
     }
 
     @Override
