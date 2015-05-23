@@ -26,13 +26,10 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     private void setLocalSwarmId(SetLocalSwarmIdMessage setLocalSwarmIdMessage) throws Exception {
         // Safe the new swarm id
         localSwarmId = setLocalSwarmIdMessage.getLocalSwarmId();
-
-        // TODO: Verify ?
-        System.out.println("Got new swarm id: " + localSwarmId);
     }
 
     private void updateNeighbours(UpdateNeighboursMessage updateNeighboursMessage) {
-
+        System.out.println("Got update: " + updateNeighboursMessage);
     }
 
     public SwarmIdCollectionHandler(SocketAddress announceAddress) {

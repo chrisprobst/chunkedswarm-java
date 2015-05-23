@@ -14,11 +14,19 @@ public final class UpdateNeighboursMessage implements Serializable {
     private final SwarmIdSet addNeighbours;
     private final SwarmIdSet removeNeighbours;
 
+    public UpdateNeighboursMessage() {
+        this(new SwarmIdSet(), new SwarmIdSet());
+    }
+
     public UpdateNeighboursMessage(SwarmIdSet addNeighbours, SwarmIdSet removeNeighbours) {
         Objects.requireNonNull(addNeighbours);
         Objects.requireNonNull(removeNeighbours);
         this.addNeighbours = addNeighbours;
         this.removeNeighbours = removeNeighbours;
+    }
+
+    public boolean isEmpty() {
+        return addNeighbours.get().isEmpty() && removeNeighbours.get().isEmpty();
     }
 
     public SwarmIdSet getAddNeighbours() {

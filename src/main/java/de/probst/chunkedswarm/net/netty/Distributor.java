@@ -59,7 +59,7 @@ public final class Distributor implements Closeable {
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
 
                                // Handle swarm id management
-                               ch.pipeline().addLast(new SwarmIdRegistrationHandler(swarmIdManager));
+                               ch.pipeline().addLast(new SwarmIdRegistrationHandler(forwarderChannels, swarmIdManager));
 
                                // Handle application logic
                                ch.pipeline().addLast(new DistributorHandler());

@@ -32,6 +32,14 @@ public class Main {
             }
 
 
+            Thread.sleep(3000);
+
+            forwarders.get(0).close();
+
+            Thread.sleep(3000);
+
+            forwarders.get(2).close();
+
             System.in.read();
 
             try {
@@ -50,5 +58,17 @@ public class Main {
         } finally {
             eventLoopGroup.shutdownGracefully();
         }
+
+//
+//        List<SwarmId> swarmIds = new ArrayList<>();
+//        for (int i = 0; i < 4; i++) {
+//            swarmIds.add(new SwarmId(UUID.randomUUID().toString(), new InetSocketAddress("localhost", 18000 + i)));
+//        }
+//        byte[] array = IOUtil.serialize(swarmIds);
+//
+//
+//
+//        System.out.println(array.length);
+
     }
 }
