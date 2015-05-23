@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.distributor;
+package de.probst.chunkedswarm.net.netty;
 
 import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
@@ -6,13 +6,13 @@ import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdRegistrationHan
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
@@ -27,30 +27,36 @@ import java.util.Objects;
  */
 public final class Distributor implements Closeable {
 
-    private static final int distributorPort = 1337;
-
+    private final SwarmIdManager swarmIdManager;
     private final EventLoopGroup eventLoopGroup;
-    private final ServerChannel serverChannel;
-    private final ChannelGroup channelGroup;
+    private final int port;
+    private final ServerChannel forwarderAcceptorChannel;
+    private final ChannelGroup forwarderChannels, allChannels;
 
-    private ServerChannel startDistributor() throws InterruptedException {
-        SwarmIdManager swarmIdManager = new SwarmIdManager();
-
+    private ServerChannel openForwarderAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
                        .option(ChannelOption.SO_BACKLOG, 256)
-                       .childOption(ChannelOption.TCP_NODELAY, true)
-                       .childHandler(new ChannelInitializer<SocketChannel>() {
+                       .handler(new ChannelInitializer<ServerChannel>() {
                            @Override
-                           protected void initChannel(SocketChannel ch) throws Exception {
+                           protected void initChannel(ServerChannel ch) throws Exception {
+                               // Track all channels
+                               ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
+                           }
+                       })
+                       .childOption(ChannelOption.TCP_NODELAY, true)
+                       .childHandler(new ChannelInitializer<Channel>() {
+                           @Override
+                           protected void initChannel(Channel ch) throws Exception {
                                // Codec
                                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
                                ch.pipeline().addLast(new LengthFieldPrepender(4));
                                ch.pipeline().addLast(new SimpleCodec());
 
                                // Track all channels
-                               ch.pipeline().addLast(new ChannelGroupHandler(channelGroup));
+                               ch.pipeline().addLast(new ChannelGroupHandler(forwarderChannels));
+                               ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
 
                                // Handle swarm id management
                                ch.pipeline().addLast(new SwarmIdRegistrationHandler(swarmIdManager));
@@ -59,32 +65,43 @@ public final class Distributor implements Closeable {
                                ch.pipeline().addLast(new DistributorHandler());
                            }
                        });
-        return (ServerChannel) serverBootstrap.bind(distributorPort).sync().channel();
+        return (ServerChannel) serverBootstrap.bind(port).syncUninterruptibly().channel();
     }
 
-    public Distributor(EventLoopGroup eventLoopGroup) throws InterruptedException {
+    public Distributor(EventLoopGroup eventLoopGroup, int port) {
         Objects.requireNonNull(eventLoopGroup);
+        swarmIdManager = new SwarmIdManager();
         this.eventLoopGroup = eventLoopGroup;
-        channelGroup = new DefaultChannelGroup(eventLoopGroup.next());
-        serverChannel = startDistributor();
+        this.port = port;
+        forwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        allChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        forwarderAcceptorChannel = openForwarderAcceptChannel();
     }
 
     public EventLoopGroup getEventLoopGroup() {
         return eventLoopGroup;
     }
 
-    public ServerChannel getServerChannel() {
-        return serverChannel;
+    public int getPort() {
+        return port;
     }
 
-    public ChannelGroup getChannelGroup() {
-        return channelGroup;
+    public ServerChannel getForwarderAcceptorChannel() {
+        return forwarderAcceptorChannel;
+    }
+
+    public ChannelGroup getForwarderChannels() {
+        return forwarderChannels;
+    }
+
+    public ChannelGroup getAllChannels() {
+        return allChannels;
     }
 
     @Override
     public void close() throws IOException {
         try {
-            channelGroup.close().sync();
+            allChannels.close().sync();
         } catch (InterruptedException e) {
             throw new IOException(e);
         }

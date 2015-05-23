@@ -1,27 +1,14 @@
 package de.probst.chunkedswarm;
 
-import de.probst.chunkedswarm.distributor.Distributor;
-import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
-import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
-import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdCollectionHandler;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
+import de.probst.chunkedswarm.net.netty.Distributor;
+import de.probst.chunkedswarm.net.netty.Forwarder;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 
 /**
@@ -31,43 +18,36 @@ import java.util.stream.IntStream;
 public class Main {
 
 
-    private static List<Channel> startForwarder(EventLoopGroup eventLoopGroup) throws InterruptedException {
-        AtomicInteger portCounter = new AtomicInteger(20000);
-        Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(eventLoopGroup)
-                 .channel(NioSocketChannel.class)
-                 .option(ChannelOption.TCP_NODELAY, true)
-                 .handler(new ChannelInitializer<SocketChannel>() {
-                     @Override
-                     protected void initChannel(SocketChannel ch) throws Exception {
-                         //ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
-                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
-                         ch.pipeline().addLast(new LengthFieldPrepender(4));
-                         ch.pipeline().addLast(new SimpleCodec());
-
-
-                         ch.pipeline().addLast(new SwarmIdCollectionHandler(portCounter.getAndIncrement()));
-
-                         ch.pipeline().addLast(new ForwarderHandler());
-                     }
-                 });
-
-        return IntStream.range(0, 4)
-                        .mapToObj(i -> bootstrap.connect("localhost", 1337).channel())
-                        .collect(Collectors.toList());
-    }
-
     public static void main(String[] args) throws InterruptedException, IOException {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        ChannelGroup channels = new DefaultChannelGroup(eventLoopGroup.next());
         try {
-            Distributor distributor = new Distributor(eventLoopGroup);
+            Distributor distributor = new Distributor(eventLoopGroup, 1337);
 
-            channels.add(distributor.getServerChannel());
-            channels.addAll(startForwarder(eventLoopGroup));
+
+            List<Forwarder> forwarders = new ArrayList<>(4);
+            for (int i = 0; i < 4; i++) {
+                forwarders.add(new Forwarder(eventLoopGroup,
+                                             new InetSocketAddress(20000 + i),
+                                             new InetSocketAddress("localhost", 1337)));
+            }
+
+
             System.in.read();
+
+            try {
+                distributor.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            for (Forwarder forwarder : forwarders) {
+                try {
+                    forwarder.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         } finally {
-            channels.close().sync();
             eventLoopGroup.shutdownGracefully();
         }
     }

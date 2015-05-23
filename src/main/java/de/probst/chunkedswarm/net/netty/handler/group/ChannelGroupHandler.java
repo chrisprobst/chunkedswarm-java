@@ -39,10 +39,4 @@ public final class ChannelGroupHandler extends ChannelHandlerAdapter {
         channelGroup.add(ctx.channel());
         super.channelActive(ctx);
     }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        channelGroup.remove(ctx.channel());
-        super.channelInactive(ctx);
-    }
 }
