@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.net.netty.handler.discovery;
+package de.probst.chunkedswarm.net.netty.handler.discovery.message;
 
 import java.io.Serializable;
 import java.net.SocketAddress;

@@ -1,5 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
+import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetCollectorAddressMessage;
+import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIdMessage;
 import de.probst.chunkedswarm.net.netty.util.ChannelUtil;
 import de.probst.chunkedswarm.util.SwarmId;
 import de.probst.chunkedswarm.util.SwarmIdManager;
