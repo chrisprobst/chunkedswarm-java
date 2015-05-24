@@ -23,22 +23,12 @@ public class Main {
         try {
             Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
 
-
             List<Forwarder> forwarders = new ArrayList<>(4);
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 100; i++) {
                 forwarders.add(new Forwarder(eventLoopGroup,
                                              new InetSocketAddress(20000 + i),
                                              new InetSocketAddress("localhost", 1337)));
             }
-
-
-            Thread.sleep(3000);
-
-            forwarders.get(0).close();
-
-            Thread.sleep(3000);
-
-            forwarders.get(2).close();
 
             System.in.read();
 

@@ -5,11 +5,13 @@ import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmI
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
 import de.probst.chunkedswarm.net.netty.util.ChannelUtil;
 import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmIdSet;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.SocketAddress;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -20,16 +22,21 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     // The announce address, which is announced to the registration handler
     private final SocketAddress announceAddress;
 
+    // All known swarm ids
+    private final SwarmIdSet knownSwarmIds = new SwarmIdSet();
+
     // The local swarm id
-    private volatile SwarmId localSwarmId;
+    private volatile Optional<SwarmId> localSwarmId = Optional.empty();
 
     private void setLocalSwarmId(SetLocalSwarmIdMessage setLocalSwarmIdMessage) throws Exception {
         // Safe the new swarm id
-        localSwarmId = setLocalSwarmIdMessage.getLocalSwarmId();
+        localSwarmId = Optional.of(setLocalSwarmIdMessage.getLocalSwarmId());
     }
 
     private void updateNeighbours(UpdateNeighboursMessage updateNeighboursMessage) {
-        System.out.println("Got update: " + updateNeighboursMessage);
+        // Add and remove neighbours
+        knownSwarmIds.get().addAll(updateNeighboursMessage.getAddNeighbours().get());
+        knownSwarmIds.get().removeAll(updateNeighboursMessage.getRemoveNeighbours().get());
     }
 
     public SwarmIdCollectionHandler(SocketAddress announceAddress) {
@@ -37,12 +44,8 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
         this.announceAddress = announceAddress;
     }
 
-    public SwarmId getLocalSwarmId() {
+    public Optional<SwarmId> getLocalSwarmId() {
         return localSwarmId;
-    }
-
-    public boolean hasLocalSwarmId() {
-        return localSwarmId != null;
     }
 
     public SocketAddress getAnnounceAddress() {
@@ -59,9 +62,9 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)) {
-            throw new IllegalStateException("localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)");
-        } else if (localSwarmId == null && msg instanceof SetLocalSwarmIdMessage) {
+        if (!localSwarmId.isPresent() && !(msg instanceof SetLocalSwarmIdMessage)) {
+            throw new IllegalStateException("!localSwarmId.isPresent() && !(msg instanceof SetLocalSwarmIdMessage)");
+        } else if (!localSwarmId.isPresent() && msg instanceof SetLocalSwarmIdMessage) {
             setLocalSwarmId((SetLocalSwarmIdMessage) msg);
         } else if (msg instanceof UpdateNeighboursMessage) {
             updateNeighbours((UpdateNeighboursMessage) msg);
