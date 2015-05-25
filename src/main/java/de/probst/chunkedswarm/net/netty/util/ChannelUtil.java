@@ -11,9 +11,9 @@ public final class ChannelUtil {
     private ChannelUtil() {
     }
 
-    public static final ChannelFutureListener REPORT_IF_FAILED_LISTENER = future -> {
+    public static final ChannelFutureListener CLOSE_IF_FAILED_LISTENER = future -> {
         if (!future.isSuccess()) {
-            future.channel().pipeline().fireExceptionCaught(future.cause());
+            future.channel().close();
         }
     };
 }

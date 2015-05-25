@@ -37,11 +37,27 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     // The current update neighbours message
     private UpdateNeighboursMessage updateNeighboursMessage = new UpdateNeighboursMessage();
 
-    // Set, when neighbours get updated
+    // The update future is set, when neighbours get updated
     private ChannelFuture updateChannelFuture;
 
     // The local swarm id
     private volatile Optional<SwarmId> localSwarmId = Optional.empty();
+
+    private void broadcastSwarmIdAdded() {
+        channels.forEach(c -> c.pipeline().fireUserEventTriggered(SwarmIdEvent.added(this.ctx.channel(),
+                                                                                     localSwarmId.get())));
+    }
+
+    private void broadcastSwarmIdRemoved() {
+        channels.forEach(c -> c.pipeline().fireUserEventTriggered(SwarmIdEvent.removed(this.ctx.channel(),
+                                                                                       localSwarmId.get())));
+    }
+
+    private void replySwarmIdAcknowledged(SwarmIdEvent swarmIdEvent) {
+        swarmIdEvent.getChannel()
+                    .pipeline()
+                    .fireUserEventTriggered(SwarmIdEvent.acknowledged(this.ctx.channel(), localSwarmId.get()));
+    }
 
     private void setCollectorAddress(ChannelHandlerContext ctx, SetCollectorAddressMessage setCollectorAddressMessage) {
         // We only support tcp/udp yet
@@ -53,7 +69,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         // Extract port
         int port = ((InetSocketAddress) setCollectorAddressMessage.getCollectorAddress()).getPort();
 
-        // TODO: Cast to inet socket address, so be careful with differeny socket types!
+        // TODO: Cast to inet socket address, so be careful with different socket types!
         InetSocketAddress inetSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
 
         // Register the new client and store local swarm id
@@ -64,37 +80,45 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
         // Send the new local swarm id to the remote
         ctx.writeAndFlush(new SetLocalSwarmIdMessage(newLocalSwarmId))
-           .addListener(ChannelUtil.REPORT_IF_FAILED_LISTENER);
-
-        // Trigger event for all channels
-        channels.forEach(c -> c.pipeline()
-                               .fireUserEventTriggered(SwarmIdEvent.added(this.ctx.channel(), localSwarmId.get())));
+           .addListener(fut -> {
+               if (fut.isSuccess()) {
+                   broadcastSwarmIdAdded();
+               }
+           })
+           .addListener(ChannelUtil.CLOSE_IF_FAILED_LISTENER);
     }
 
     private void prepareUpdateNeighboursMessage(SwarmIdEvent swarmIdEvent) {
-        if (swarmIdEvent.getType() == SwarmIdEvent.Type.Acknowledged) {
-            updateNeighboursMessage.getAddNeighbours().get().add(swarmIdEvent.getSwarmId());
+        // We are not ready to participate yet
+        if (!localSwarmId.isPresent()) {
+            return;
+        }
 
-        } else if (!localSwarmId.isPresent() || !localSwarmId.get().equals(swarmIdEvent.getSwarmId())) {
-            switch (swarmIdEvent.getType()) {
-                case Added:
-                    updateNeighboursMessage.getAddNeighbours().get().add(swarmIdEvent.getSwarmId());
+        // Ignore ping-back passages
+        if (localSwarmId.get().equals(swarmIdEvent.getSwarmId())) {
+            return;
+        }
 
-                    if (localSwarmId.isPresent()) {
-                        swarmIdEvent.getChannel()
-                                    .pipeline()
-                                    .fireUserEventTriggered(SwarmIdEvent.acknowledged(this.ctx.channel(),
-                                                                                      localSwarmId.get()));
-                    }
-                    break;
-                case Removed:
-                    updateNeighboursMessage.getRemoveNeighbours().get().add(swarmIdEvent.getSwarmId());
-                    break;
-            }
+        switch (swarmIdEvent.getType()) {
+            case Added:
+                updateNeighboursMessage.getAddNeighbours().get().add(swarmIdEvent.getSwarmId());
+                replySwarmIdAcknowledged(swarmIdEvent);
+                break;
+            case Removed:
+                updateNeighboursMessage.getRemoveNeighbours().get().add(swarmIdEvent.getSwarmId());
+                break;
+            case Acknowledged:
+                updateNeighboursMessage.getAddNeighbours().get().add(swarmIdEvent.getSwarmId());
+                break;
         }
     }
 
     private void updateNeighbours() {
+        // We are not ready to participate yet
+        if (!localSwarmId.isPresent()) {
+            return;
+        }
+
         // No updates, skip this update
         if (updateNeighboursMessage.isEmpty()) {
             return;
@@ -108,7 +132,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         // Write the update neighbours message
         ctx.writeAndFlush(updateNeighboursMessage)
            .addListener(fut -> updateChannelFuture = null)
-           .addListener(ChannelUtil.REPORT_IF_FAILED_LISTENER);
+           .addListener(ChannelUtil.CLOSE_IF_FAILED_LISTENER);
 
         // Create a new update message
         updateNeighboursMessage = new UpdateNeighboursMessage();
@@ -119,6 +143,10 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         Objects.requireNonNull(swarmIdManager);
         this.channels = channels;
         this.swarmIdManager = swarmIdManager;
+    }
+
+    public Optional<SwarmId> getLocalSwarmId() {
+        return localSwarmId;
     }
 
     @Override
@@ -142,15 +170,9 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if (localSwarmId.isPresent()) {
             swarmIdManager.unregister(localSwarmId.get());
-            channels.forEach(c -> c.pipeline()
-                                   .fireUserEventTriggered(SwarmIdEvent.removed(this.ctx.channel(),
-                                                                                localSwarmId.get())));
+            broadcastSwarmIdRemoved();
         }
         super.channelInactive(ctx);
-    }
-
-    public Optional<SwarmId> getLocalSwarmId() {
-        return localSwarmId;
     }
 
     @Override

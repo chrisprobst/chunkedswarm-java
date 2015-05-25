@@ -9,6 +9,7 @@ import de.probst.chunkedswarm.util.SwarmIdSet;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,10 +34,23 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
         localSwarmId = Optional.of(setLocalSwarmIdMessage.getLocalSwarmId());
     }
 
+    long d = System.currentTimeMillis();
+
     private void updateNeighbours(UpdateNeighboursMessage updateNeighboursMessage) {
         // Add and remove neighbours
         knownSwarmIds.get().addAll(updateNeighboursMessage.getAddNeighbours().get());
         knownSwarmIds.get().removeAll(updateNeighboursMessage.getRemoveNeighbours().get());
+
+        if (((InetSocketAddress) announceAddress).getPort() == 20095) {
+            System.out.println((System.currentTimeMillis() - d) + " Known peers: " + knownSwarmIds.get().size());
+
+            for (SwarmId swarmId : knownSwarmIds.get()) {
+                System.out.println(swarmId);
+            }
+
+            System.out.println();
+            System.out.println();
+        }
     }
 
     public SwarmIdCollectionHandler(SocketAddress announceAddress) {
@@ -56,7 +70,7 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         // Send announce port to remote
         ctx.writeAndFlush(new SetCollectorAddressMessage(announceAddress))
-           .addListener(ChannelUtil.REPORT_IF_FAILED_LISTENER);
+           .addListener(ChannelUtil.CLOSE_IF_FAILED_LISTENER);
         super.channelActive(ctx);
     }
 

@@ -30,6 +30,11 @@ public class Main {
                                              new InetSocketAddress("localhost", 1337)));
             }
 
+            for (int i = 0; i < 90; i++) {
+                Thread.sleep(1);
+                forwarders.get(i).close();
+            }
+
             System.in.read();
 
             try {

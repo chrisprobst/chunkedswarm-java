@@ -10,7 +10,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -38,13 +37,6 @@ public final class Forwarder implements Closeable {
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
                        .option(ChannelOption.SO_BACKLOG, 256)
-                       .handler(new ChannelInitializer<ServerChannel>() {
-                           @Override
-                           protected void initChannel(ServerChannel ch) throws Exception {
-                               // Track all channels
-                               ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
-                           }
-                       })
                        .childOption(ChannelOption.TCP_NODELAY, true)
                        .childHandler(new ChannelInitializer<Channel>() {
                            @Override
@@ -59,7 +51,13 @@ public final class Forwarder implements Closeable {
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
                            }
                        });
-        serverBootstrap.bind(collectorAcceptorAddress).syncUninterruptibly();
+
+        // Open collector accept channel
+        Channel channel = serverBootstrap.bind(collectorAcceptorAddress).syncUninterruptibly().channel();
+
+        // Add to channel groups
+        collectorChannels.add(channel);
+        allChannels.add(channel);
     }
 
     private void connectToDistributor(SocketAddress socketAddress) {
@@ -77,9 +75,6 @@ public final class Forwarder implements Closeable {
                          ch.pipeline().addLast(new LengthFieldPrepender(4));
                          ch.pipeline().addLast(new SimpleCodec());
 
-                         // Track all channels
-                         ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
-
                          // Handle swarm id management
                          ch.pipeline().addLast(new SwarmIdCollectionHandler(collectorAcceptorAddress));
 
@@ -90,6 +85,9 @@ public final class Forwarder implements Closeable {
 
         // Connect and return channel
         Channel channel = bootstrap.connect(socketAddress).syncUninterruptibly().channel();
+
+        // Add to channel group
+        allChannels.add(channel);
 
         // Close the forwarder, if connection to distributor is lost!
         channel.closeFuture().addListener(fut -> close());
