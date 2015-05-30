@@ -2,6 +2,7 @@ package de.probst.chunkedswarm.net.netty;
 
 import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
+import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdRegistrationHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.util.SwarmIdManager;
@@ -51,6 +52,9 @@ public final class Distributor implements Closeable {
 
                                // Handle swarm id management
                                ch.pipeline().addLast(new SwarmIdRegistrationHandler(allChannels, swarmIdManager));
+
+                               // Handle connection acknowledgements
+                               ch.pipeline().addLast(new AcknowledgeConnectionsHandler());
 
                                // Handle application logic
                                ch.pipeline().addLast(new DistributorHandler());

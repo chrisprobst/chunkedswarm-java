@@ -25,6 +25,7 @@ public class Main {
 
             List<Forwarder> forwarders = new ArrayList<>(4);
             for (int i = 0; i < 5; i++) {
+                Thread.sleep(1000);
                 forwarders.add(new Forwarder(eventLoopGroup,
                                              new InetSocketAddress(20000 + i),
                                              new InetSocketAddress("localhost", 1337)));
