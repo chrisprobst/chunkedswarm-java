@@ -38,6 +38,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     private void acknowledgeNeighbours(AcknowledgeNeighboursMessage msg) {
         msg.getAddedNeighbours().forEach(acknowledgedNeighbours::add);
         msg.getRemovedNeighbours().forEach(acknowledgedNeighbours::remove);
+        System.out.println(this + " -> " + acknowledgedNeighbours.size());
     }
 
     @Override

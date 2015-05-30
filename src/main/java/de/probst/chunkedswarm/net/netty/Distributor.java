@@ -81,8 +81,8 @@ public final class Distributor implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            allChannels.close().sync();
-        } catch (InterruptedException e) {
+            allChannels.close().syncUninterruptibly();
+        } catch (Exception e) {
             throw new IOException(e);
         }
     }

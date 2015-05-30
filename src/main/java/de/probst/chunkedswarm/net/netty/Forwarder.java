@@ -56,10 +56,12 @@ public final class Forwarder implements Closeable {
                                ch.pipeline().addLast(new ChannelHandlerAdapter() {
                                    @Override
                                    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-                                       System.out.println(ctx);
+                                       //System.out.println(ctx);
                                        super.channelActive(ctx);
                                    }
                                });
+
+                               ch.pipeline().addLast(new ForwarderHandler());
                            }
                        });
 
@@ -123,8 +125,8 @@ public final class Forwarder implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            allChannels.close().sync();
-        } catch (InterruptedException e) {
+            allChannels.close().syncUninterruptibly();
+        } catch (Exception e) {
             throw new IOException(e);
         }
     }

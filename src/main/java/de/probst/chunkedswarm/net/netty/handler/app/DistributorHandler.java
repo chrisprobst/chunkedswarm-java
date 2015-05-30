@@ -1,6 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.app;
 
 import io.netty.channel.ChannelHandlerAdapter;
+import io.netty.channel.ChannelHandlerContext;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -8,5 +9,8 @@ import io.netty.channel.ChannelHandlerAdapter;
  */
 public class DistributorHandler extends ChannelHandlerAdapter {
 
-
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        ctx.close();
+    }
 }

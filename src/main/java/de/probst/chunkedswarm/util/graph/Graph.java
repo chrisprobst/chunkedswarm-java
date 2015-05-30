@@ -20,7 +20,6 @@ public final class Graph<T> implements Cloneable {
         nodes.entrySet().forEach(entry -> entry.getValue()
                                                .getNodes()
                                                .removeIf(n -> !nodes.get(n).getNodes().contains(entry.getKey())));
-
     }
 
     private void insertCandidate(NodeGroups<T> meshCandidates, NodeGroup<T> newMeshCandidate) {
