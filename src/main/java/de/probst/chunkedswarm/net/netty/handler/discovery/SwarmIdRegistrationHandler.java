@@ -7,10 +7,10 @@ import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmI
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
 import de.probst.chunkedswarm.util.SwarmId;
 import de.probst.chunkedswarm.util.SwarmIdManager;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.group.ChannelGroup;
 
 import java.net.InetSocketAddress;
@@ -38,7 +38,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     private UpdateNeighboursMessage updateNeighboursMessage = new UpdateNeighboursMessage();
 
     // The update future is set, when neighbours get updated
-    private ChannelFuture updateChannelFuture;
+    private ChannelPromise updateChannelPromise;
 
     // The local swarm id
     private SwarmId localSwarmId;
@@ -99,17 +99,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
            .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
     }
 
-    private void prepareUpdateNeighboursMessage(SwarmIdRegistrationEvent swarmIdRegistrationEvent) {
-        // We are not ready to participate yet
-        if (localSwarmId == null) {
-            return;
-        }
-
-        // Ignore ping-back passages
-        if (localSwarmId.equals(swarmIdRegistrationEvent.getSwarmId())) {
-            return;
-        }
-
+    private void handleSwarmIdRegistrationEvent(SwarmIdRegistrationEvent swarmIdRegistrationEvent) {
         switch (swarmIdRegistrationEvent.getType()) {
             case Registered:
                 updateNeighboursMessage.getAddNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
@@ -136,14 +126,17 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         }
 
         // Pending update channel future, just ignore the current update
-        if (updateChannelFuture != null) {
+        if (updateChannelPromise != null) {
             return;
         }
 
+        // Prepare promise
+        updateChannelPromise = ctx.newPromise();
+
         // Write the update neighbours message
-        updateChannelFuture = ctx.writeAndFlush(updateNeighboursMessage)
-                                 .addListener(fut -> updateChannelFuture = null)
-                                 .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+        ctx.writeAndFlush(updateNeighboursMessage, updateChannelPromise)
+           .addListener(fut -> updateChannelPromise = null)
+           .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
 
         // Create a new update message
         updateNeighboursMessage = new UpdateNeighboursMessage();
@@ -159,10 +152,26 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof SwarmIdRegistrationEvent) {
-            prepareUpdateNeighboursMessage((SwarmIdRegistrationEvent) evt);
-        }
+            // We are not ready to participate yet
+            if (localSwarmId == null) {
+                return;
+            }
 
-        super.userEventTriggered(ctx, evt);
+            // Cast
+            SwarmIdRegistrationEvent swarmIdRegistrationEvent = (SwarmIdRegistrationEvent) evt;
+
+            // Ignore ping-back passages
+            if (localSwarmId.equals(swarmIdRegistrationEvent.getSwarmId())) {
+                return;
+            }
+
+            // Handle the registration event
+            handleSwarmIdRegistrationEvent((SwarmIdRegistrationEvent) evt);
+
+            super.userEventTriggered(ctx, evt);
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
     }
 
     @Override
@@ -184,10 +193,15 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (localSwarmId == null && !(msg instanceof SetCollectorAddressMessage)) {
-            throw new IllegalStateException("localSwarmId == null && !(msg instanceof SetCollectorAddressMessage)");
-        } else if (localSwarmId == null) {
-            setCollectorAddress(ctx, (SetCollectorAddressMessage) msg);
+        boolean hasNotLocalSwarmId = localSwarmId == null;
+        boolean isSetCollectorAddressMessage = msg instanceof SetCollectorAddressMessage;
+
+        if (hasNotLocalSwarmId || isSetCollectorAddressMessage) {
+            if (!hasNotLocalSwarmId || !isSetCollectorAddressMessage) {
+                throw new IllegalStateException("!hasNotLocalSwarmId || !isSetCollectorAddressMessage");
+            } else {
+                setCollectorAddress(ctx, (SetCollectorAddressMessage) msg);
+            }
         } else {
             super.channelRead(ctx, msg);
         }

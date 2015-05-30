@@ -1,7 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.connection;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationEvent;
 import de.probst.chunkedswarm.util.SwarmId;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,14 +15,35 @@ import java.util.Set;
  */
 public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
-    private final Set<String> acknowledged = new HashSet<>();
+    // Store all known neighbours here
+    private final Set<SwarmId> knownNeighbours = new HashSet<>();
 
-    SwarmId swarmId;
+    // Store all acknowledged neighbours here
+    private final Set<String> acknowledgedNeighbours = new HashSet<>();
+
+    private void handleSwarmIdRegistrationEvent(SwarmIdRegistrationEvent swarmIdRegistrationEvent) {
+        switch (swarmIdRegistrationEvent.getType()) {
+            case Registered:
+                knownNeighbours.add(swarmIdRegistrationEvent.getSwarmId());
+                break;
+            case Unregistered:
+                knownNeighbours.remove(swarmIdRegistrationEvent.getSwarmId());
+                break;
+            case Acknowledged:
+                knownNeighbours.add(swarmIdRegistrationEvent.getSwarmId());
+                break;
+        }
+    }
+
+    private void acknowledgeNeighbours(AcknowledgeNeighboursMessage msg) {
+        msg.getAddedNeighbours().forEach(acknowledgedNeighbours::add);
+        msg.getRemovedNeighbours().forEach(acknowledgedNeighbours::remove);
+    }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof SwarmIdAcquisitionEvent) {
-            swarmId = ((SwarmIdAcquisitionEvent) evt).getSwarmId();
+        if (evt instanceof SwarmIdRegistrationEvent) {
+            handleSwarmIdRegistrationEvent((SwarmIdRegistrationEvent) evt);
         }
 
         super.userEventTriggered(ctx, evt);

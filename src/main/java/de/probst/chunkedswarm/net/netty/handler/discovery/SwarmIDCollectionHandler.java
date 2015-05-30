@@ -48,7 +48,7 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
         // Let handler chain know, that we have acquired our swarm id
         fireSwarmIdAcquired();
     }
-    
+
     private void updateNeighbours(UpdateNeighboursMessage updateNeighboursMessage) {
         // Add and remove neighbours
         knownSwarmIds.addAll(updateNeighboursMessage.getAddNeighbours());
@@ -75,10 +75,15 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)) {
-            throw new IllegalStateException("localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)");
-        } else if (localSwarmId == null) {
-            setLocalSwarmId((SetLocalSwarmIdMessage) msg);
+        boolean hasNotLocalSwarmId = localSwarmId == null;
+        boolean isSetLocalSwarmIdMessage = msg instanceof SetLocalSwarmIdMessage;
+
+        if (hasNotLocalSwarmId || isSetLocalSwarmIdMessage) {
+            if (!hasNotLocalSwarmId || !isSetLocalSwarmIdMessage) {
+                throw new IllegalStateException("!hasNotLocalSwarmId || !isSetLocalSwarmIdMessage");
+            } else {
+                setLocalSwarmId((SetLocalSwarmIdMessage) msg);
+            }
         } else if (msg instanceof UpdateNeighboursMessage) {
             updateNeighbours((UpdateNeighboursMessage) msg);
         } else {

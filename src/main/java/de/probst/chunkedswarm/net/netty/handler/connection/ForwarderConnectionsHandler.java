@@ -13,6 +13,7 @@ import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
@@ -57,8 +58,8 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     // The current acknowledged neighbours message
     private AcknowledgeNeighboursMessage acknowledgeNeighboursMessage = new AcknowledgeNeighboursMessage();
 
-    // The update future is set, when neighbours get updated
-    private ChannelFuture acknowledgeChannelFuture;
+    // The acknowledge promise is set, when neighbours get acknowledged
+    private ChannelPromise acknowledgeChannelPromise;
 
     private void fireChannelConnected(SwarmId swarmId, Channel channel) {
         ctx.pipeline().fireUserEventTriggered(new ConnectionEvent(swarmId, channel, ConnectionEvent.Type.Connected));
@@ -165,20 +166,24 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     }
 
     private void acknowledgeNeighbours() {
+
         // No updates, skip this update
         if (acknowledgeNeighboursMessage.isEmpty()) {
             return;
         }
 
         // Pending acknowledge channel future, just ignore the current update
-        if (acknowledgeChannelFuture != null) {
+        if (acknowledgeChannelPromise != null) {
             return;
         }
 
+        // Prepare promise
+        acknowledgeChannelPromise = ctx.newPromise();
+
         // Write the update neighbours message
-        acknowledgeChannelFuture = ctx.writeAndFlush(acknowledgeNeighboursMessage)
-                                      .addListener(fut -> acknowledgeChannelFuture = null)
-                                      .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+        ctx.writeAndFlush(acknowledgeNeighboursMessage, acknowledgeChannelPromise)
+           .addListener(fut -> acknowledgeChannelPromise = null)
+           .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
 
         // Create a new acknowledge message
         acknowledgeNeighboursMessage = new AcknowledgeNeighboursMessage();
