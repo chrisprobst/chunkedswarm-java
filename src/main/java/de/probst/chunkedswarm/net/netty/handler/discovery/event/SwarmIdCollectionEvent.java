@@ -1,6 +1,11 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.event;
 
-import de.probst.chunkedswarm.util.SwarmIdSet;
+import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
+import de.probst.chunkedswarm.util.SwarmId;
+
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -8,14 +13,23 @@ import de.probst.chunkedswarm.util.SwarmIdSet;
  */
 public final class SwarmIdCollectionEvent {
 
-    private final SwarmIdSet swarmIdSet;
+    private final Set<SwarmId> swarmIds;
+    private final UpdateNeighboursMessage updateNeighboursMessage;
 
-    public SwarmIdCollectionEvent(SwarmIdSet swarmIdSet) {
-        this.swarmIdSet = new SwarmIdSet(swarmIdSet.get());
+    public SwarmIdCollectionEvent(Set<SwarmId> swarmIds, UpdateNeighboursMessage updateNeighboursMessage) {
+        Objects.requireNonNull(swarmIds);
+        Objects.requireNonNull(updateNeighboursMessage);
+        this.swarmIds = new HashSet<>(swarmIds);
+        this.updateNeighboursMessage = updateNeighboursMessage;
+
     }
 
-    public SwarmIdSet getSwarmIdSet() {
-        return swarmIdSet;
+    public Set<SwarmId> getSwarmIds() {
+        return swarmIds;
+    }
+
+    public UpdateNeighboursMessage getUpdateNeighboursMessage() {
+        return updateNeighboursMessage;
     }
 
     @Override
@@ -25,18 +39,22 @@ public final class SwarmIdCollectionEvent {
 
         SwarmIdCollectionEvent that = (SwarmIdCollectionEvent) o;
 
-        return swarmIdSet.equals(that.swarmIdSet);
+        if (!swarmIds.equals(that.swarmIds)) return false;
+        return updateNeighboursMessage.equals(that.updateNeighboursMessage);
     }
 
     @Override
     public int hashCode() {
-        return swarmIdSet.hashCode();
+        int result = swarmIds.hashCode();
+        result = 31 * result + updateNeighboursMessage.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
         return "SwarmIdCollectionEvent{" +
-               "swarmIdSet=" + swarmIdSet +
+               "swarmIds=" + swarmIds +
+               ", updateNeighboursMessage=" + updateNeighboursMessage +
                '}';
     }
 }

@@ -1,9 +1,11 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.message;
 
-import de.probst.chunkedswarm.util.SwarmIdSet;
+import de.probst.chunkedswarm.util.SwarmId;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -11,14 +13,14 @@ import java.util.Objects;
  */
 public final class UpdateNeighboursMessage implements Serializable {
 
-    private final SwarmIdSet addNeighbours;
-    private final SwarmIdSet removeNeighbours;
+    private final Set<SwarmId> addNeighbours;
+    private final Set<SwarmId> removeNeighbours;
 
     public UpdateNeighboursMessage() {
-        this(new SwarmIdSet(), new SwarmIdSet());
+        this(new HashSet<>(), new HashSet<>());
     }
 
-    public UpdateNeighboursMessage(SwarmIdSet addNeighbours, SwarmIdSet removeNeighbours) {
+    public UpdateNeighboursMessage(Set<SwarmId> addNeighbours, Set<SwarmId> removeNeighbours) {
         Objects.requireNonNull(addNeighbours);
         Objects.requireNonNull(removeNeighbours);
         this.addNeighbours = addNeighbours;
@@ -26,14 +28,14 @@ public final class UpdateNeighboursMessage implements Serializable {
     }
 
     public boolean isEmpty() {
-        return addNeighbours.get().isEmpty() && removeNeighbours.get().isEmpty();
+        return addNeighbours.isEmpty() && removeNeighbours.isEmpty();
     }
 
-    public SwarmIdSet getAddNeighbours() {
+    public Set<SwarmId> getAddNeighbours() {
         return addNeighbours;
     }
 
-    public SwarmIdSet getRemoveNeighbours() {
+    public Set<SwarmId> getRemoveNeighbours() {
         return removeNeighbours;
     }
 

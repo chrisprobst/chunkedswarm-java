@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAquisitionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetCollectorAddressMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIdMessage;
@@ -44,7 +44,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     private SwarmId localSwarmId;
 
     private void fireSwarmIdAcquired() {
-        ctx.pipeline().fireUserEventTriggered(new SwarmIdAquisitionEvent(localSwarmId));
+        ctx.pipeline().fireUserEventTriggered(new SwarmIdAcquisitionEvent(localSwarmId));
     }
 
     private void broadcastSwarmIdRegistered() {
@@ -112,14 +112,14 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
         switch (swarmIdRegistrationEvent.getType()) {
             case Registered:
-                updateNeighboursMessage.getAddNeighbours().get().add(swarmIdRegistrationEvent.getSwarmId());
+                updateNeighboursMessage.getAddNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
                 replySwarmIdAcknowledged(swarmIdRegistrationEvent);
                 break;
             case Unregistered:
-                updateNeighboursMessage.getRemoveNeighbours().get().add(swarmIdRegistrationEvent.getSwarmId());
+                updateNeighboursMessage.getRemoveNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
                 break;
             case Acknowledged:
-                updateNeighboursMessage.getAddNeighbours().get().add(swarmIdRegistrationEvent.getSwarmId());
+                updateNeighboursMessage.getAddNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
                 break;
         }
     }
@@ -141,9 +141,9 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         }
 
         // Write the update neighbours message
-        ctx.writeAndFlush(updateNeighboursMessage)
-           .addListener(fut -> updateChannelFuture = null)
-           .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+        updateChannelFuture = ctx.writeAndFlush(updateNeighboursMessage)
+                                 .addListener(fut -> updateChannelFuture = null)
+                                 .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
 
         // Create a new update message
         updateNeighboursMessage = new UpdateNeighboursMessage();
@@ -186,7 +186,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (localSwarmId == null && !(msg instanceof SetCollectorAddressMessage)) {
             throw new IllegalStateException("localSwarmId == null && !(msg instanceof SetCollectorAddressMessage)");
-        } else if (localSwarmId == null && msg instanceof SetCollectorAddressMessage) {
+        } else if (localSwarmId == null) {
             setCollectorAddress(ctx, (SetCollectorAddressMessage) msg);
         } else {
             super.channelRead(ctx, msg);

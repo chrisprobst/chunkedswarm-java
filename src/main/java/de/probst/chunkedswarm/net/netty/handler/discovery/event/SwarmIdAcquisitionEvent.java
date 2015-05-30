@@ -8,11 +8,11 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 30.05.15
  */
-public final class SwarmIdAquisitionEvent {
+public final class SwarmIdAcquisitionEvent {
 
     private final SwarmId swarmId;
 
-    public SwarmIdAquisitionEvent(SwarmId swarmId) {
+    public SwarmIdAcquisitionEvent(SwarmId swarmId) {
         Objects.requireNonNull(swarmId);
         this.swarmId = swarmId;
     }
@@ -26,7 +26,7 @@ public final class SwarmIdAquisitionEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdAquisitionEvent that = (SwarmIdAquisitionEvent) o;
+        SwarmIdAcquisitionEvent that = (SwarmIdAcquisitionEvent) o;
 
         return swarmId.equals(that.swarmId);
     }
@@ -38,7 +38,7 @@ public final class SwarmIdAquisitionEvent {
 
     @Override
     public String toString() {
-        return "SwarmIdAquisitionEvent{" +
+        return "SwarmIdAcquisitionEvent{" +
                "swarmId=" + swarmId +
                '}';
     }

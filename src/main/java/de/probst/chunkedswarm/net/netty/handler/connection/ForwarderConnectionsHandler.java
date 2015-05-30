@@ -2,12 +2,13 @@ package de.probst.chunkedswarm.net.netty.handler.connection;
 
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.ConnectionEvent;
+import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdCollectionEvent;
 import de.probst.chunkedswarm.util.SwarmId;
-import de.probst.chunkedswarm.util.SwarmIdSet;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -22,12 +23,15 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 30.05.15
  */
-public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
+public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
+
+    public static final long ACKNOWLEDGE_INTERVAL_MS = 1000;
 
     // The forwarder channel group
     private final ChannelGroup forwarderChannels;
@@ -35,7 +39,7 @@ public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
     // The event loop group of all forwarder connections
     private final EventLoopGroup eventLoopGroup;
 
-    // Used to keep track of engages forwarder channels
+    // Used to keep track of engaged forwarder channels
     private final ChannelGroup engagedForwarderChannels;
 
     // The bootstrap to create forwarder connections
@@ -47,11 +51,14 @@ public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
     // Here we track all pending connections
     private final Map<SwarmId, ChannelFuture> pendingConnections = new HashMap<>();
 
-    // The last swarm id set
-    private SwarmIdSet lastSwarmIdSet;
-
     // The channel handler context
     private ChannelHandlerContext ctx;
+
+    // The current acknowledged neighbours message
+    private AcknowledgeNeighboursMessage acknowledgeNeighboursMessage = new AcknowledgeNeighboursMessage();
+
+    // The update future is set, when neighbours get updated
+    private ChannelFuture acknowledgeChannelFuture;
 
     private void fireChannelConnected(SwarmId swarmId, Channel channel) {
         ctx.pipeline().fireUserEventTriggered(new ConnectionEvent(swarmId, channel, ConnectionEvent.Type.Connected));
@@ -117,22 +124,9 @@ public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
     }
 
     private void handleSwarmIdCollectionEvent(SwarmIdCollectionEvent evt) {
-        // Evaluate what's new and whats deprecated
-        SwarmIdSet swarmIdSet = evt.getSwarmIdSet(), additional, missing;
-        if (lastSwarmIdSet != null) {
-            additional = lastSwarmIdSet.computeAdditional(swarmIdSet);
-            missing = lastSwarmIdSet.computeMissing(swarmIdSet);
-        } else {
-            additional = swarmIdSet;
-            missing = new SwarmIdSet();
-        }
-
         // Connect & disconnect from new/missing swarm ids
-        additional.get().forEach(this::connectBySwarmId);
-        missing.get().forEach(this::disconnectBySwarmId);
-
-        // Remember the last swarm id
-        lastSwarmIdSet = swarmIdSet;
+        evt.getUpdateNeighboursMessage().getAddNeighbours().forEach(this::connectBySwarmId);
+        evt.getUpdateNeighboursMessage().getRemoveNeighbours().forEach(this::disconnectBySwarmId);
     }
 
     private void handleConnectionEvent(ConnectionEvent evt) {
@@ -149,6 +143,9 @@ public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
                 pendingConnections.remove(evt.getSwarmId());
                 engagedConnections.put(evt.getSwarmId(), evt.getChannel());
                 engagedForwarderChannels.add(evt.getChannel());
+
+                // Add to added neighbours
+                acknowledgeNeighboursMessage.getAddedNeighbours().add(evt.getSwarmId().getUuid());
                 break;
             case Disconnected:
                 if (!pendingConnections.containsKey(evt.getSwarmId()) &&
@@ -157,13 +154,37 @@ public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
                                                     "!engagedConnections.containsKey(evt.getSwarmId())");
                 }
 
+                // Remove from both maps
                 pendingConnections.remove(evt.getSwarmId());
                 engagedConnections.remove(evt.getSwarmId());
+
+                // Add to removed neighbours
+                acknowledgeNeighboursMessage.getRemovedNeighbours().add(evt.getSwarmId().getUuid());
                 break;
         }
     }
 
-    public ForwarderConnectionHandler(ChannelGroup forwarderChannels, EventLoopGroup eventLoopGroup) {
+    private void acknowledgeNeighbours() {
+        // No updates, skip this update
+        if (acknowledgeNeighboursMessage.isEmpty()) {
+            return;
+        }
+
+        // Pending acknowledge channel future, just ignore the current update
+        if (acknowledgeChannelFuture != null) {
+            return;
+        }
+
+        // Write the update neighbours message
+        acknowledgeChannelFuture = ctx.writeAndFlush(acknowledgeNeighboursMessage)
+                                      .addListener(fut -> acknowledgeChannelFuture = null)
+                                      .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+
+        // Create a new acknowledge message
+        acknowledgeNeighboursMessage = new AcknowledgeNeighboursMessage();
+    }
+
+    public ForwarderConnectionsHandler(ChannelGroup forwarderChannels, EventLoopGroup eventLoopGroup) {
         Objects.requireNonNull(forwarderChannels);
         Objects.requireNonNull(eventLoopGroup);
         this.forwarderChannels = forwarderChannels;
@@ -186,6 +207,12 @@ public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
         initBootstrap();
+
+        ctx.executor()
+           .scheduleAtFixedRate(this::acknowledgeNeighbours,
+                                ACKNOWLEDGE_INTERVAL_MS,
+                                ACKNOWLEDGE_INTERVAL_MS,
+                                TimeUnit.MILLISECONDS);
         super.channelActive(ctx);
     }
 }

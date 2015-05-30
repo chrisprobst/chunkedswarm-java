@@ -2,7 +2,7 @@ package de.probst.chunkedswarm.net.netty;
 
 import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
-import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionHandler;
+import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdCollectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import io.netty.bootstrap.Bootstrap;
@@ -80,7 +80,6 @@ public final class Forwarder implements Closeable {
                      @Override
                      protected void initChannel(Channel ch) throws Exception {
 
-
                          // Codec
                          ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
                          ch.pipeline().addLast(new LengthFieldPrepender(4));
@@ -90,7 +89,7 @@ public final class Forwarder implements Closeable {
                          ch.pipeline().addLast(new SwarmIdCollectionHandler(collectorAcceptorAddress));
 
                          // Handle forwarder connections based on swarm id collections
-                         ch.pipeline().addLast(new ForwarderConnectionHandler(allChannels, eventLoopGroup));
+                         ch.pipeline().addLast(new ForwarderConnectionsHandler(allChannels, eventLoopGroup));
 
                          // Handle application logic
                          ch.pipeline().addLast(new ForwarderHandler());
