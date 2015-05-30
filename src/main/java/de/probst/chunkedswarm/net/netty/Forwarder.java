@@ -2,11 +2,14 @@ package de.probst.chunkedswarm.net.netty;
 
 import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
+import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdCollectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerAdapter;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -30,7 +33,7 @@ public final class Forwarder implements Closeable {
 
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress collectorAcceptorAddress;
-    private final ChannelGroup forwarderChannels, collectorChannels, allChannels;
+    private final ChannelGroup collectorChannels, allChannels;
 
     private void openCollectorAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
@@ -49,6 +52,14 @@ public final class Forwarder implements Closeable {
                                // Track all channels
                                ch.pipeline().addLast(new ChannelGroupHandler(collectorChannels));
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
+
+                               ch.pipeline().addLast(new ChannelHandlerAdapter() {
+                                   @Override
+                                   public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                       System.out.println(ctx);
+                                       super.channelActive(ctx);
+                                   }
+                               });
                            }
                        });
 
@@ -78,6 +89,9 @@ public final class Forwarder implements Closeable {
                          // Handle swarm id management
                          ch.pipeline().addLast(new SwarmIdCollectionHandler(collectorAcceptorAddress));
 
+                         // Handle forwarder connections based on swarm id collections
+                         ch.pipeline().addLast(new ForwarderConnectionHandler(allChannels, eventLoopGroup));
+
                          // Handle application logic
                          ch.pipeline().addLast(new ForwarderHandler());
                      }
@@ -101,7 +115,6 @@ public final class Forwarder implements Closeable {
         Objects.requireNonNull(distributorAddress);
         this.eventLoopGroup = eventLoopGroup;
         this.collectorAcceptorAddress = collectorAcceptorAddress;
-        forwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
         collectorChannels = new DefaultChannelGroup(eventLoopGroup.next());
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
         openCollectorAcceptChannel();

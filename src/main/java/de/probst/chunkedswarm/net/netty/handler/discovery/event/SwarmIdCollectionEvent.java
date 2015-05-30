@@ -2,8 +2,6 @@ package de.probst.chunkedswarm.net.netty.handler.discovery.event;
 
 import de.probst.chunkedswarm.util.SwarmIdSet;
 
-import java.util.Collections;
-
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 30.05.15
@@ -13,7 +11,7 @@ public final class SwarmIdCollectionEvent {
     private final SwarmIdSet swarmIdSet;
 
     public SwarmIdCollectionEvent(SwarmIdSet swarmIdSet) {
-        this.swarmIdSet = new SwarmIdSet(Collections.unmodifiableSet(swarmIdSet.get()));
+        this.swarmIdSet = new SwarmIdSet(swarmIdSet.get());
     }
 
     public SwarmIdSet getSwarmIdSet() {

@@ -1,40 +1,41 @@
-package de.probst.chunkedswarm.net.netty.handler.discovery.event;
+package de.probst.chunkedswarm.net.netty.handler.connection.event;
 
 import de.probst.chunkedswarm.util.SwarmId;
 import io.netty.channel.Channel;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
- * @version 1.0, 23.05.15
+ * @version 1.0, 30.05.15
  */
-public final class SwarmIdRegistrationEvent implements Serializable {
+public final class ConnectionEvent {
 
     public enum Type {
-        Registered, Unregistered, Acknowledged
+        Connected, Disconnected
     }
 
-    private final Channel channel;
     private final SwarmId swarmId;
+    private final Channel channel;
     private final Type type;
 
-    public SwarmIdRegistrationEvent(Channel channel, SwarmId swarmId, Type type) {
-        Objects.requireNonNull(channel);
+    public ConnectionEvent(SwarmId swarmId,
+                           Channel channel,
+                           Type type) {
         Objects.requireNonNull(swarmId);
+        Objects.requireNonNull(channel);
         Objects.requireNonNull(type);
-        this.channel = channel;
         this.swarmId = swarmId;
+        this.channel = channel;
         this.type = type;
-    }
-
-    public Channel getChannel() {
-        return channel;
     }
 
     public SwarmId getSwarmId() {
         return swarmId;
+    }
+
+    public Channel getChannel() {
+        return channel;
     }
 
     public Type getType() {
@@ -46,27 +47,27 @@ public final class SwarmIdRegistrationEvent implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdRegistrationEvent that = (SwarmIdRegistrationEvent) o;
+        ConnectionEvent that = (ConnectionEvent) o;
 
-        if (!channel.equals(that.channel)) return false;
         if (!swarmId.equals(that.swarmId)) return false;
+        if (!channel.equals(that.channel)) return false;
         return type == that.type;
 
     }
 
     @Override
     public int hashCode() {
-        int result = channel.hashCode();
-        result = 31 * result + swarmId.hashCode();
+        int result = swarmId.hashCode();
+        result = 31 * result + channel.hashCode();
         result = 31 * result + type.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return "SwarmIdRegistrationEvent{" +
-               "channel=" + channel +
-               ", swarmId=" + swarmId +
+        return "ConnectionEvent{" +
+               "swarmId=" + swarmId +
+               ", channel=" + channel +
                ", type=" + type +
                '}';
     }

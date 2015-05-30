@@ -24,16 +24,16 @@ public class Main {
             Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
 
             List<Forwarder> forwarders = new ArrayList<>(4);
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 5; i++) {
                 forwarders.add(new Forwarder(eventLoopGroup,
                                              new InetSocketAddress(20000 + i),
                                              new InetSocketAddress("localhost", 1337)));
             }
-
-            for (int i = 0; i < 90; i++) {
-                Thread.sleep(1);
-                forwarders.get(i).close();
-            }
+//
+//            for (int i = 0; i < 90; i++) {
+//                Thread.sleep(1);
+//                forwarders.get(i).close();
+//            }
 
             System.in.read();
 
