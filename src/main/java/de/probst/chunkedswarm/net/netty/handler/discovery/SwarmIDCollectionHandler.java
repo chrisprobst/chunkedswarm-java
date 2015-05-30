@@ -1,18 +1,19 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAquisitionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdCollectionEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetCollectorAddressMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIdMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
-import de.probst.chunkedswarm.net.netty.util.ChannelUtil;
 import de.probst.chunkedswarm.util.SwarmId;
 import de.probst.chunkedswarm.util.SwarmIdSet;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -26,12 +27,26 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     // All known swarm ids
     private final SwarmIdSet knownSwarmIds = new SwarmIdSet();
 
+    // The channel handler context
+    private ChannelHandlerContext ctx;
+
     // The local swarm id
-    private volatile Optional<SwarmId> localSwarmId = Optional.empty();
+    private SwarmId localSwarmId;
+
+    private void fireSwarmIdsCollected() {
+        ctx.pipeline().fireUserEventTriggered(new SwarmIdCollectionEvent(knownSwarmIds));
+    }
+
+    private void fireSwarmIdAcquired() {
+        ctx.pipeline().fireUserEventTriggered(new SwarmIdAquisitionEvent(localSwarmId));
+    }
 
     private void setLocalSwarmId(SetLocalSwarmIdMessage setLocalSwarmIdMessage) throws Exception {
         // Safe the new swarm id
-        localSwarmId = Optional.of(setLocalSwarmIdMessage.getLocalSwarmId());
+        localSwarmId = setLocalSwarmIdMessage.getLocalSwarmId();
+
+        // Let handler chain know, that we have acquired our swarm id
+        fireSwarmIdAcquired();
     }
 
     long d = System.currentTimeMillis();
@@ -51,6 +66,9 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
             System.out.println();
             System.out.println();
         }
+
+        // Let handler chain know, that we have updated our set of swarm ids0
+        fireSwarmIdsCollected();
     }
 
     public SwarmIdCollectionHandler(SocketAddress announceAddress) {
@@ -58,27 +76,21 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
         this.announceAddress = announceAddress;
     }
 
-    public Optional<SwarmId> getLocalSwarmId() {
-        return localSwarmId;
-    }
-
-    public SocketAddress getAnnounceAddress() {
-        return announceAddress;
-    }
-
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        this.ctx = ctx;
+
         // Send announce port to remote
         ctx.writeAndFlush(new SetCollectorAddressMessage(announceAddress))
-           .addListener(ChannelUtil.CLOSE_IF_FAILED_LISTENER);
+           .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
         super.channelActive(ctx);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (!localSwarmId.isPresent() && !(msg instanceof SetLocalSwarmIdMessage)) {
-            throw new IllegalStateException("!localSwarmId.isPresent() && !(msg instanceof SetLocalSwarmIdMessage)");
-        } else if (!localSwarmId.isPresent() && msg instanceof SetLocalSwarmIdMessage) {
+        if (localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)) {
+            throw new IllegalStateException("localSwarmId == null && !(msg instanceof SetLocalSwarmIdMessage)");
+        } else if (localSwarmId == null && msg instanceof SetLocalSwarmIdMessage) {
             setLocalSwarmId((SetLocalSwarmIdMessage) msg);
         } else if (msg instanceof UpdateNeighboursMessage) {
             updateNeighbours((UpdateNeighboursMessage) msg);

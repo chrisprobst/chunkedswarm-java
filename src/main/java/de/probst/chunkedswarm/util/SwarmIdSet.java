@@ -2,23 +2,25 @@ package de.probst.chunkedswarm.util;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
 public final class SwarmIdSet implements Serializable {
 
-    private final Set<SwarmId> swarmIds = new HashSet<>();
+    private final Set<SwarmId> swarmIds;
 
-    public SwarmIdSet(Collection<SwarmId> swarmIds) {
+    public SwarmIdSet(Set<SwarmId> swarmIds) {
         Objects.requireNonNull(swarmIds);
-        this.swarmIds.addAll(swarmIds);
+        this.swarmIds = swarmIds;
     }
 
-    public SwarmIdSet(SwarmId... swarmIds) {
-        Objects.requireNonNull(swarmIds);
-        Collections.addAll(this.swarmIds, swarmIds);
+    public SwarmIdSet() {
+        this(new HashSet<>());
+    }
+
+    public SwarmIdSet(Collection<SwarmId> swarmIds) {
+        this(new HashSet<>(swarmIds));
     }
 
     public Set<SwarmId> get() {

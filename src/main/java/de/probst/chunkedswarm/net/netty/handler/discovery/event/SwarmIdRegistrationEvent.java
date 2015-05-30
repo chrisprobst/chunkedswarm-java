@@ -10,30 +10,18 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 23.05.15
  */
-public final class SwarmIdEvent implements Serializable {
+public final class SwarmIdRegistrationEvent implements Serializable {
 
     private final Channel channel;
 
-    public static SwarmIdEvent added(Channel channel, SwarmId swarmId) {
-        return new SwarmIdEvent(channel, swarmId, Type.Added);
-    }
-
-    public static SwarmIdEvent removed(Channel channel, SwarmId swarmId) {
-        return new SwarmIdEvent(channel, swarmId, Type.Removed);
-    }
-
-    public static SwarmIdEvent acknowledged(Channel channel, SwarmId swarmId) {
-        return new SwarmIdEvent(channel, swarmId, Type.Acknowledged);
-    }
-
     public enum Type {
-        Added, Removed, Acknowledged
+        Registered, Unregistered, Acknowledged
     }
 
     private final SwarmId swarmId;
     private final Type type;
 
-    public SwarmIdEvent(Channel channel, SwarmId swarmId, Type type) {
+    public SwarmIdRegistrationEvent(Channel channel, SwarmId swarmId, Type type) {
         Objects.requireNonNull(channel);
         Objects.requireNonNull(swarmId);
         Objects.requireNonNull(type);
@@ -59,7 +47,7 @@ public final class SwarmIdEvent implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdEvent that = (SwarmIdEvent) o;
+        SwarmIdRegistrationEvent that = (SwarmIdRegistrationEvent) o;
 
         if (!channel.equals(that.channel)) return false;
         if (!swarmId.equals(that.swarmId)) return false;
@@ -77,7 +65,7 @@ public final class SwarmIdEvent implements Serializable {
 
     @Override
     public String toString() {
-        return "SwarmIdEvent{" +
+        return "SwarmIdRegistrationEvent{" +
                "channel=" + channel +
                ", swarmId=" + swarmId +
                ", type=" + type +
