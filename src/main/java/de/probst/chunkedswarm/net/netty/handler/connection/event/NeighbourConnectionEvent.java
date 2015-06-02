@@ -9,7 +9,7 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 30.05.15
  */
-public final class ConnectionEvent {
+public final class NeighbourConnectionEvent {
 
     public enum Type {
         Connected, Disconnected
@@ -19,9 +19,9 @@ public final class ConnectionEvent {
     private final Channel channel;
     private final Type type;
 
-    public ConnectionEvent(SwarmId swarmId,
-                           Channel channel,
-                           Type type) {
+    public NeighbourConnectionEvent(SwarmId swarmId,
+                                    Channel channel,
+                                    Type type) {
         Objects.requireNonNull(swarmId);
         Objects.requireNonNull(channel);
         Objects.requireNonNull(type);
@@ -47,7 +47,7 @@ public final class ConnectionEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ConnectionEvent that = (ConnectionEvent) o;
+        NeighbourConnectionEvent that = (NeighbourConnectionEvent) o;
 
         if (!swarmId.equals(that.swarmId)) return false;
         if (!channel.equals(that.channel)) return false;

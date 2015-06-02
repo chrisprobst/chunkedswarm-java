@@ -4,6 +4,7 @@ import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdRegistrationHandler;
+import de.probst.chunkedswarm.net.netty.handler.graph.GraphHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.bootstrap.ServerBootstrap;
@@ -11,6 +12,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -38,6 +40,14 @@ public final class Distributor implements Closeable {
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
                        .option(ChannelOption.SO_BACKLOG, 256)
+                       .handler(new ChannelInitializer<ServerChannel>() {
+                           @Override
+                           protected void initChannel(ServerChannel ch) throws Exception {
+
+                               // The server channel handles graph computation
+                               ch.pipeline().addLast(new GraphHandler(swarmIdManager));
+                           }
+                       })
                        .childOption(ChannelOption.TCP_NODELAY, true)
                        .childHandler(new ChannelInitializer<Channel>() {
                            @Override

@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.util.graph;
+package de.probst.chunkedswarm.net.netty.handler.graph;
 
 import java.util.HashSet;
 import java.util.Objects;

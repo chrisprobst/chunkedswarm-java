@@ -1,7 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.connection;
 
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
-import de.probst.chunkedswarm.net.netty.handler.connection.event.ConnectionEvent;
+import de.probst.chunkedswarm.net.netty.handler.connection.event.NeighbourConnectionEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdCollectionEvent;
 import de.probst.chunkedswarm.util.SwarmId;
@@ -62,11 +62,11 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     private ChannelPromise acknowledgeChannelPromise;
 
     private void fireChannelConnected(SwarmId swarmId, Channel channel) {
-        ctx.pipeline().fireUserEventTriggered(new ConnectionEvent(swarmId, channel, ConnectionEvent.Type.Connected));
+        ctx.pipeline().fireUserEventTriggered(new NeighbourConnectionEvent(swarmId, channel, NeighbourConnectionEvent.Type.Connected));
     }
 
     private void fireChannelDisconnected(SwarmId swarmId, Channel channel) {
-        ctx.pipeline().fireUserEventTriggered(new ConnectionEvent(swarmId, channel, ConnectionEvent.Type.Disconnected));
+        ctx.pipeline().fireUserEventTriggered(new NeighbourConnectionEvent(swarmId, channel, NeighbourConnectionEvent.Type.Disconnected));
     }
 
     private void initBootstrap() {
@@ -130,7 +130,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         evt.getUpdateNeighboursMessage().getRemoveNeighbours().forEach(this::disconnectBySwarmId);
     }
 
-    private void handleConnectionEvent(ConnectionEvent evt) {
+    private void handleConnectionEvent(NeighbourConnectionEvent evt) {
         switch (evt.getType()) {
             case Connected:
                 if (!pendingConnections.containsKey(evt.getSwarmId())) {
@@ -201,8 +201,8 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof SwarmIdCollectionEvent) {
             handleSwarmIdCollectionEvent((SwarmIdCollectionEvent) evt);
-        } else if (evt instanceof ConnectionEvent) {
-            handleConnectionEvent((ConnectionEvent) evt);
+        } else if (evt instanceof NeighbourConnectionEvent) {
+            handleConnectionEvent((NeighbourConnectionEvent) evt);
         }
 
         super.userEventTriggered(ctx, evt);

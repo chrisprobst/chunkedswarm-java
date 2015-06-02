@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.util.graph;
+package de.probst.chunkedswarm.net.netty.handler.graph;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -19,7 +19,8 @@ public final class Graph<T> implements Cloneable {
         // Ignore correct reverse neighbours
         nodes.entrySet().forEach(entry -> entry.getValue()
                                                .getNodes()
-                                               .removeIf(n -> !nodes.get(n).getNodes().contains(entry.getKey())));
+                                               .removeIf(n -> !nodes.containsKey(n) ||
+                                                              !nodes.get(n).getNodes().contains(entry.getKey())));
     }
 
     private void insertCandidate(NodeGroups<T> meshCandidates, NodeGroup<T> newMeshCandidate) {
