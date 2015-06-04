@@ -21,7 +21,6 @@ public final class SwarmIdCollectionEvent {
         Objects.requireNonNull(updateNeighboursMessage);
         this.swarmIds = new HashSet<>(swarmIds);
         this.updateNeighboursMessage = updateNeighboursMessage;
-
     }
 
     public Set<SwarmId> getSwarmIds() {

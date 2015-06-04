@@ -185,6 +185,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
            .addListener(fut -> acknowledgeChannelPromise = null)
            .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
 
+
         // Create a new acknowledge message
         acknowledgeNeighboursMessage = new AcknowledgeNeighboursMessage();
     }
