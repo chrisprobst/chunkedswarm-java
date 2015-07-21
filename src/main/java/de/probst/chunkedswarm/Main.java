@@ -35,18 +35,19 @@ public class Main {
             for (int i = 0; i < 40; i++) {
 
                 forwarders.get(i).close();
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
 
             System.in.read();
 
+            System.out.println("Closing");
             try {
                 distributor.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-
+            System.out.println("Closed");
             for (Forwarder forwarder : forwarders) {
                 try {
                     forwarder.close();

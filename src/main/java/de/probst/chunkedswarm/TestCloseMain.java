@@ -2,6 +2,7 @@ package de.probst.chunkedswarm;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,7 +28,6 @@ public class TestCloseMain {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
 
-
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
@@ -38,12 +38,27 @@ public class TestCloseMain {
                                ch.pipeline().addLast(new ChannelHandlerAdapter() {
 
                                    @Override
+                                   public void exceptionCaught(ChannelHandlerContext ctx,
+                                                               Throwable cause) throws Exception {
+                                       cause.printStackTrace();
+                                       System.err.println();
+                                       System.err.println();
+                                   }
+
+                                   @Override
                                    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                       ByteBuf b = ctx.alloc().buffer(1024 * 1024);
+                                       for (int i = 0; i < 1024 * 256; i++) {
+                                           b.writeInt(i);
+                                       }
+
+
                                        Runnable write = new Runnable() {
                                            @Override
                                            public void run() {
+                                               b.retain();
                                                ctx.channel()
-                                                  .writeAndFlush(ctx.alloc().buffer(1024))
+                                                  .writeAndFlush(b.duplicate())
                                                   .addListener(fut -> {
                                                       if (!fut.isSuccess()) {
                                                           fut.cause().printStackTrace();
@@ -54,15 +69,31 @@ public class TestCloseMain {
                                            }
                                        };
 
-                                       TestCloseMain.ch = ctx.channel();
+
                                        write.run();
                                        super.channelActive(ctx);
                                    }
 
+//                                   int amount = 0;
+//                                   long t = System.currentTimeMillis();
+//
+//                                   @Override
+//                                   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+//                                       amount += ((ByteBuf) msg).readableBytes();
+//                                       long t2 = System.currentTimeMillis();
+//                                       if (t2 - t >= 1000) {
+//                                           System.out.println((amount / 1024.0 / 1024.0) + " mb/sec");
+//                                           amount = 0;
+//                                           t = t2;
+//                                       }
+//
+//
+//                                       super.channelRead(ctx, msg);
+//                                   }
 
                                    @Override
                                    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-                                       System.out.println("Server channel closed");
+                                       //System.out.println("Server channel closed");
 
                                        super.channelInactive(ctx);
                                    }
@@ -83,13 +114,49 @@ public class TestCloseMain {
 
                          ch.pipeline().addLast(new ChannelHandlerAdapter() {
 
+//                             int amount = 0;
+//                             long t = System.currentTimeMillis();
+//
+//                             @Override
+//                             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+//                                 amount += ((ByteBuf) msg).readableBytes();
+//                                 long t2 = System.currentTimeMillis();
+//                                 if (t2 - t >= 1000) {
+//                                     System.out.println((amount / 1024.0 / 1024.0) + " mb/sec");
+//                                     amount = 0;
+//                                     t = t2;
+//                                 }
+//
+//
+//
+//                                 super.channelRead(ctx, msg);
+//                             }
+
+
+                             @Override
+                             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                                 cause.printStackTrace();
+                                 System.err.println();
+                                 System.err.println();
+                             }
+
                              @Override
                              public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+                                 ByteBuf b = ctx.alloc().buffer(1024 * 1024);
+                                 for (int i = 0; i < 1024 * 256; i++) {
+                                     b.writeInt(i);
+                                 }
+
+
                                  Runnable write = new Runnable() {
                                      @Override
                                      public void run() {
+
+
+                                         b.retain();
                                          ctx.channel()
-                                            .writeAndFlush(ctx.alloc().buffer(1024))
+                                            .writeAndFlush(b.duplicate())
                                             .addListener(fut -> {
                                                 if (!fut.isSuccess()) {
                                                     fut.cause().printStackTrace();
@@ -106,7 +173,7 @@ public class TestCloseMain {
 
                              @Override
                              public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-                                 System.out.println("Client channel closed");
+                                 //System.out.println("Client channel closed");
 
                                  super.channelInactive(ctx);
                              }
@@ -114,11 +181,11 @@ public class TestCloseMain {
                      }
                  });
 
-        bootstrap.connect("localhost", 1337).syncUninterruptibly();
+        ch = bootstrap.connect("kr0e.no-ip.info", 1337).syncUninterruptibly().channel();
 
         System.in.read();
 
-        ch.close().syncUninterruptibly();
+        ch.close().awaitUninterruptibly();
 
         System.in.read();
     }

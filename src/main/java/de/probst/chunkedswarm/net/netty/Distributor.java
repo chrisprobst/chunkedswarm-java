@@ -76,6 +76,9 @@ public final class Distributor implements Closeable {
 
         // Add to channel group
         allChannels.add(channel);
+
+        // Close the distributor, if server socket is closed!
+        channel.closeFuture().addListener(fut -> close());
     }
 
     public Distributor(EventLoopGroup eventLoopGroup, SocketAddress socketAddress) {
