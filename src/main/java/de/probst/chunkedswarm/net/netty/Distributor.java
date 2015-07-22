@@ -9,8 +9,10 @@ import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
@@ -36,11 +38,10 @@ public final class Distributor implements Closeable {
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;
 
-    private ChannelGroupFuture closeAllChannels() {
-        return allChannels.close();
-    }
+    // Represents the result of initialization
+    private final ChannelPromise initChannelPromise;
 
-    private void openForwarderAcceptChannel() {
+    private ChannelFuture openForwarderAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
@@ -77,29 +78,65 @@ public final class Distributor implements Closeable {
                        });
 
         // Open forwarder accept channel
-        Channel channel = serverBootstrap.bind(socketAddress).syncUninterruptibly().channel();
+        ChannelFuture bindFuture = serverBootstrap.bind(socketAddress);
 
         // Add to channel group
-        allChannels.add(channel);
+        allChannels.add(bindFuture.channel());
 
         // Close the distributor, if server socket is closed!
-        channel.closeFuture().addListener(fut -> closeAllChannels());
+        bindFuture.channel().closeFuture().addListener(fut -> closeAsync());
+
+        return bindFuture;
     }
 
     public Distributor(EventLoopGroup eventLoopGroup, SocketAddress socketAddress) {
         Objects.requireNonNull(eventLoopGroup);
         Objects.requireNonNull(socketAddress);
+
+        // Init attributes
         swarmIdManager = new SwarmIdManager();
         this.eventLoopGroup = eventLoopGroup;
         this.socketAddress = socketAddress;
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
-        openForwarderAcceptChannel();
+
+        // *********************************************
+        // **************** Initialize *****************
+        // *********************************************
+
+        // Initialize forwarder
+        ChannelFuture bindFuture = openForwarderAcceptChannel();
+
+        // Create new init promise
+        initChannelPromise = bindFuture.channel().newPromise();
+
+        // Listen for bind
+        bindFuture.addListener(fut -> {
+
+            // Check for bind success
+            if (!fut.isSuccess()) {
+
+                // Stop initialization here
+                initChannelPromise.setFailure(fut.cause());
+            } else {
+
+                // Set init success
+                initChannelPromise.setSuccess();
+            }
+        });
+    }
+
+    public ChannelFuture getInitFuture() {
+        return initChannelPromise;
+    }
+
+    public ChannelGroupFuture closeAsync() {
+        return allChannels.close();
     }
 
     @Override
     public void close() throws IOException {
         try {
-            closeAllChannels().syncUninterruptibly();
+            closeAsync().syncUninterruptibly();
         } catch (Exception e) {
             throw new IOException(e);
         }

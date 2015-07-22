@@ -40,14 +40,12 @@ public class Main {
 
             System.in.read();
 
-            System.out.println("Closing");
             try {
                 distributor.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            System.out.println("Closed");
             for (Forwarder forwarder : forwarders) {
                 try {
                     forwarder.close();

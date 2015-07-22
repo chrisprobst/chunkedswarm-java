@@ -8,10 +8,10 @@ import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerAdapter;
-import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
@@ -36,11 +36,10 @@ public final class Forwarder implements Closeable {
     private final SocketAddress collectorAcceptorAddress;
     private final ChannelGroup collectorChannels, allChannels;
 
-    private ChannelGroupFuture closeAllChannels() {
-        return allChannels.close();
-    }
+    // Represents the result of initialization
+    private final ChannelPromise initChannelPromise;
 
-    private void openCollectorAcceptChannel() {
+    private ChannelFuture openCollectorAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
@@ -58,27 +57,24 @@ public final class Forwarder implements Closeable {
                                ch.pipeline().addLast(new ChannelGroupHandler(collectorChannels));
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
 
-                               ch.pipeline().addLast(new ChannelHandlerAdapter() {
-                                   @Override
-                                   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-                                       //System.out.println(ctx);
-                                       super.channelActive(ctx);
-                                   }
-                               });
-
                                ch.pipeline().addLast(new ForwarderHandler());
                            }
                        });
 
         // Open collector accept channel
-        Channel channel = serverBootstrap.bind(collectorAcceptorAddress).syncUninterruptibly().channel();
+        ChannelFuture bindFuture = serverBootstrap.bind(collectorAcceptorAddress);
 
         // Add to channel groups
-        collectorChannels.add(channel);
-        allChannels.add(channel);
+        collectorChannels.add(bindFuture.channel());
+        allChannels.add(bindFuture.channel());
+
+        // Close the forwarder, if the collector is closed
+        bindFuture.channel().closeFuture().addListener(fut -> closeAsync());
+
+        return bindFuture;
     }
 
-    private void connectToDistributor(SocketAddress socketAddress) {
+    private ChannelFuture connectToDistributor(SocketAddress socketAddress) {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup)
                  .channel(NioSocketChannel.class)
@@ -103,14 +99,16 @@ public final class Forwarder implements Closeable {
                      }
                  });
 
-        // Connect and return channel
-        Channel channel = bootstrap.connect(socketAddress).syncUninterruptibly().channel();
+        // Connect and store channel future
+        ChannelFuture connectFuture = bootstrap.connect(socketAddress);
 
         // Add to channel group
-        allChannels.add(channel);
+        allChannels.add(connectFuture.channel());
 
-        // Close the forwarder, if connection to distributor is lost!
-        channel.closeFuture().addListener(fut -> closeAllChannels());
+        // Close the forwarder, if connection to distributor is lost
+        connectFuture.channel().closeFuture().addListener(fut -> closeAsync());
+
+        return connectFuture;
     }
 
     public Forwarder(EventLoopGroup eventLoopGroup,
@@ -119,18 +117,63 @@ public final class Forwarder implements Closeable {
         Objects.requireNonNull(eventLoopGroup);
         Objects.requireNonNull(collectorAcceptorAddress);
         Objects.requireNonNull(distributorAddress);
+
+        // Init attributes
         this.eventLoopGroup = eventLoopGroup;
         this.collectorAcceptorAddress = collectorAcceptorAddress;
         collectorChannels = new DefaultChannelGroup(eventLoopGroup.next());
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
-        openCollectorAcceptChannel();
-        connectToDistributor(distributorAddress);
+
+        // *********************************************
+        // **************** Initialize *****************
+        // *********************************************
+
+        // Initialize collector accept channel
+        ChannelFuture bindFuture = openCollectorAcceptChannel();
+
+        // Create new init promise
+        initChannelPromise = bindFuture.channel().newPromise();
+
+        // Listen for bind
+        bindFuture.addListener(fut -> {
+
+            // Check for bind success
+            if (!fut.isSuccess()) {
+
+                // Stop initialization here
+                initChannelPromise.setFailure(fut.cause());
+            } else {
+
+                // Initialize connection to distributor and listen for connection
+                connectToDistributor(distributorAddress).addListener(fut2 -> {
+
+                    // Check for connect success
+                    if (!fut2.isSuccess()) {
+
+                        // Stop initialization here
+                        initChannelPromise.setFailure(fut2.cause());
+                    } else {
+
+                        // Set init success
+                        initChannelPromise.setSuccess();
+                    }
+                });
+            }
+        });
+    }
+
+    public ChannelFuture getInitFuture() {
+        return initChannelPromise;
+    }
+
+    public ChannelGroupFuture closeAsync() {
+        return allChannels.close();
     }
 
     @Override
     public void close() throws IOException {
         try {
-            closeAllChannels().syncUninterruptibly();
+            closeAsync().syncUninterruptibly();
         } catch (Exception e) {
             throw new IOException(e);
         }
