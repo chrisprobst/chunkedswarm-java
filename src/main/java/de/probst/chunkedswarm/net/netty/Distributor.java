@@ -14,6 +14,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -34,6 +35,10 @@ public final class Distributor implements Closeable {
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;
+
+    private ChannelGroupFuture closeAllChannels() {
+        return allChannels.close();
+    }
 
     private void openForwarderAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
@@ -78,7 +83,7 @@ public final class Distributor implements Closeable {
         allChannels.add(channel);
 
         // Close the distributor, if server socket is closed!
-        channel.closeFuture().addListener(fut -> close());
+        channel.closeFuture().addListener(fut -> closeAllChannels());
     }
 
     public Distributor(EventLoopGroup eventLoopGroup, SocketAddress socketAddress) {
@@ -94,7 +99,7 @@ public final class Distributor implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            allChannels.close().syncUninterruptibly();
+            closeAllChannels().syncUninterruptibly();
         } catch (Exception e) {
             throw new IOException(e);
         }
