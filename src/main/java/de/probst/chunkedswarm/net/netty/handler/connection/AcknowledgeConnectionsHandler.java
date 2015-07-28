@@ -14,8 +14,7 @@ import java.util.Set;
 
 /**
  * Channel sends to parent:
- * - AcknowledgedNeighboursUpdated
- * - AcknowledgedNeighboursDisposed
+ * - AcknowledgedNeighboursEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15

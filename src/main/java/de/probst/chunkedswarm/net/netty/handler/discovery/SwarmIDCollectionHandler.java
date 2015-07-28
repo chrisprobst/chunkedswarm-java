@@ -16,6 +16,10 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
+ * Channel sends to pipeline:
+ * - SwarmIdCollectionEvent
+ * - SwarmIdAcquisitionEvent
+ *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
  */

@@ -27,8 +27,11 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Channel sends to pipeline:
+ * - NeighbourConnectionEvent
+ *
  * @author Christopher Probst <christopher.probst@hhu.de>
- * @version 1.0, 30.05.15
+ * @version 1.0, 22.05.15
  */
 public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
 

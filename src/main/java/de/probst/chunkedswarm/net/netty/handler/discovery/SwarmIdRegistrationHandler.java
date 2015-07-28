@@ -20,14 +20,13 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Channel sends to pipeline:
- * - SwarmIdAcquired
+ * - SwarmIdAcquisitionEvent
  * <p>
  * Channel broadcasts to parent and all other channels:
- * - SwarmIdRegistered
- * - SwarmIdUnregistered
+ * - SwarmIdRegistrationEvent
  * <p>
  * Channel receives from all other channels:
- * - SwarmIdRegisteredAcknowledgement
+ * - SwarmIdRegisteredAcknowledgementEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
