@@ -21,8 +21,11 @@ import java.util.Set;
  */
 public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
-    // Store all acknowledged neighbours here
-    private final Set<String> acknowledgedNeighbours = new HashSet<>();
+    // Store all acknowledged outbound neighbours here
+    private final Set<String> acknowledgedOutboundNeighbours = new HashSet<>();
+
+    // Store all acknowledged inbound neighbours here
+    private final Set<String> acknowledgedInboundNeighbours = new HashSet<>();
 
     // The channel handler context
     private ChannelHandlerContext ctx;
@@ -41,7 +44,8 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
         parent.pipeline()
               .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Update,
-                                                                      acknowledgedNeighbours,
+                                                                      acknowledgedOutboundNeighbours,
+                                                                      acknowledgedInboundNeighbours,
                                                                       Optional.of(msg),
                                                                       ctx,
                                                                       localSwarmId));
@@ -61,7 +65,8 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
         parent.pipeline()
               .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Dispose,
-                                                                      acknowledgedNeighbours,
+                                                                      acknowledgedOutboundNeighbours,
+                                                                      acknowledgedInboundNeighbours,
                                                                       Optional.empty(),
                                                                       ctx,
                                                                       localSwarmId));
@@ -72,8 +77,10 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     }
 
     private void acknowledgeNeighbours(AcknowledgeNeighboursMessage msg) {
-        msg.getAddedNeighbours().forEach(acknowledgedNeighbours::add);
-        msg.getRemovedNeighbours().forEach(acknowledgedNeighbours::remove);
+        msg.getAddedOutboundNeighbours().forEach(acknowledgedOutboundNeighbours::add);
+        msg.getRemovedOutboundNeighbours().forEach(acknowledgedOutboundNeighbours::remove);
+        msg.getAddedInboundNeighbours().forEach(acknowledgedInboundNeighbours::add);
+        msg.getRemovedInboundNeighbours().forEach(acknowledgedInboundNeighbours::remove);
         fireAcknowledgedNeighboursUpdateEvent(msg);
     }
 

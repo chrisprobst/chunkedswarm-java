@@ -32,7 +32,7 @@ public final class GraphHandler extends ChannelHandlerAdapter {
             NodeGroup<String> nodeGroup = new NodeGroup<>();
 
             // Add all acknowledged neighbours into group
-            nodeGroup.getNodes().addAll(evt.getAcknowledgedNeighbours());
+            nodeGroup.getNodes().addAll(evt.getAcknowledgedOutboundNeighbours());
 
             // Of course, each node is connected with the master
             nodeGroup.getNodes().add(masterUuid);

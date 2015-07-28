@@ -155,7 +155,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                 engagedForwarderChannels.add(evt.getChannel());
 
                 // Add to added neighbours
-                acknowledgeNeighboursMessage.getAddedNeighbours().add(evt.getSwarmId().getUuid());
+                acknowledgeNeighboursMessage.getAddedOutboundNeighbours().add(evt.getSwarmId().getUuid());
                 break;
             case Disconnected:
                 if (!pendingConnections.containsKey(evt.getSwarmId()) &&
@@ -169,7 +169,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                 engagedConnections.remove(evt.getSwarmId());
 
                 // Add to removed neighbours
-                acknowledgeNeighboursMessage.getRemovedNeighbours().add(evt.getSwarmId().getUuid());
+                acknowledgeNeighboursMessage.getRemovedOutboundNeighbours().add(evt.getSwarmId().getUuid());
                 break;
         }
     }

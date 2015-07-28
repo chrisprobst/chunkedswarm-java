@@ -21,9 +21,12 @@ public final class AcknowledgedNeighboursEvent {
 
     // The type of this event
     private final Type type;
+    
+    // Store all acknowledged outbound neighbours here
+    private final Set<String> acknowledgedOutboundNeighbours;
 
-    // Store all acknowledged neighbours here
-    private final Set<String> acknowledgedNeighbours;
+    // Store all acknowledged inbound neighbours here
+    private final Set<String> acknowledgedInboundNeighbours;
 
     // The message, which changed the acknowledged neighbours
     private final Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage;
@@ -35,18 +38,21 @@ public final class AcknowledgedNeighboursEvent {
     private final SwarmId localSwarmId;
 
     public AcknowledgedNeighboursEvent(Type type,
-                                       Set<String> acknowledgedNeighbours,
+                                       Set<String> acknowledgedOutboundNeighbours,
+                                       Set<String> acknowledgedInboundNeighbours,
                                        Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage,
                                        ChannelHandlerContext ctx,
                                        SwarmId localSwarmId) {
         Objects.requireNonNull(type);
-        Objects.requireNonNull(acknowledgedNeighbours);
+        Objects.requireNonNull(acknowledgedOutboundNeighbours);
+        Objects.requireNonNull(acknowledgedInboundNeighbours);
         Objects.requireNonNull(acknowledgeNeighboursMessage);
         Objects.requireNonNull(ctx);
         Objects.requireNonNull(localSwarmId);
 
         this.type = type;
-        this.acknowledgedNeighbours = new HashSet<>(acknowledgedNeighbours);
+        this.acknowledgedOutboundNeighbours = new HashSet<>(acknowledgedOutboundNeighbours);
+        this.acknowledgedInboundNeighbours = new HashSet<>(acknowledgedInboundNeighbours);
         this.acknowledgeNeighboursMessage = acknowledgeNeighboursMessage;
         this.ctx = ctx;
         this.localSwarmId = localSwarmId;
@@ -56,8 +62,12 @@ public final class AcknowledgedNeighboursEvent {
         return type;
     }
 
-    public Set<String> getAcknowledgedNeighbours() {
-        return acknowledgedNeighbours;
+    public Set<String> getAcknowledgedOutboundNeighbours() {
+        return acknowledgedOutboundNeighbours;
+    }
+
+    public Set<String> getAcknowledgedInboundNeighbours() {
+        return acknowledgedInboundNeighbours;
     }
 
     public Optional<AcknowledgeNeighboursMessage> getAcknowledgeNeighboursMessage() {
@@ -80,7 +90,8 @@ public final class AcknowledgedNeighboursEvent {
         AcknowledgedNeighboursEvent that = (AcknowledgedNeighboursEvent) o;
 
         if (type != that.type) return false;
-        if (!acknowledgedNeighbours.equals(that.acknowledgedNeighbours)) return false;
+        if (!acknowledgedOutboundNeighbours.equals(that.acknowledgedOutboundNeighbours)) return false;
+        if (!acknowledgedInboundNeighbours.equals(that.acknowledgedInboundNeighbours)) return false;
         if (!acknowledgeNeighboursMessage.equals(that.acknowledgeNeighboursMessage)) return false;
         if (!ctx.equals(that.ctx)) return false;
         return localSwarmId.equals(that.localSwarmId);
@@ -90,7 +101,8 @@ public final class AcknowledgedNeighboursEvent {
     @Override
     public int hashCode() {
         int result = type.hashCode();
-        result = 31 * result + acknowledgedNeighbours.hashCode();
+        result = 31 * result + acknowledgedOutboundNeighbours.hashCode();
+        result = 31 * result + acknowledgedInboundNeighbours.hashCode();
         result = 31 * result + acknowledgeNeighboursMessage.hashCode();
         result = 31 * result + ctx.hashCode();
         result = 31 * result + localSwarmId.hashCode();
@@ -101,7 +113,8 @@ public final class AcknowledgedNeighboursEvent {
     public String toString() {
         return "AcknowledgedNeighboursEvent{" +
                "type=" + type +
-               ", acknowledgedNeighbours=" + acknowledgedNeighbours +
+               ", acknowledgedOutboundNeighbours=" + acknowledgedOutboundNeighbours +
+               ", acknowledgedInboundNeighbours=" + acknowledgedInboundNeighbours +
                ", acknowledgeNeighboursMessage=" + acknowledgeNeighboursMessage +
                ", ctx=" + ctx +
                ", localSwarmId=" + localSwarmId +
