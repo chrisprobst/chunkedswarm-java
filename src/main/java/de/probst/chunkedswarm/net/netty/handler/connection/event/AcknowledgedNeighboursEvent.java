@@ -1,12 +1,12 @@
 package de.probst.chunkedswarm.net.netty.handler.connection.event;
 
+import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
 import de.probst.chunkedswarm.util.SwarmId;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -22,11 +22,11 @@ public final class AcknowledgedNeighboursEvent {
     // The type of this event
     private final Type type;
 
-    // Store all known neighbours here
-    private final Map<String, SwarmId> knownNeighbours;
-
     // Store all acknowledged neighbours here
     private final Set<String> acknowledgedNeighbours;
+
+    // The message, which changed the acknowledged neighbours
+    private final Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage;
 
     // The channel handler context
     private final ChannelHandlerContext ctx;
@@ -35,19 +35,19 @@ public final class AcknowledgedNeighboursEvent {
     private final SwarmId localSwarmId;
 
     public AcknowledgedNeighboursEvent(Type type,
-                                       Map<String, SwarmId> knownNeighbours,
                                        Set<String> acknowledgedNeighbours,
+                                       Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage,
                                        ChannelHandlerContext ctx,
                                        SwarmId localSwarmId) {
         Objects.requireNonNull(type);
-        Objects.requireNonNull(knownNeighbours);
         Objects.requireNonNull(acknowledgedNeighbours);
+        Objects.requireNonNull(acknowledgeNeighboursMessage);
         Objects.requireNonNull(ctx);
         Objects.requireNonNull(localSwarmId);
 
         this.type = type;
-        this.knownNeighbours = new HashMap<>(knownNeighbours);
         this.acknowledgedNeighbours = new HashSet<>(acknowledgedNeighbours);
+        this.acknowledgeNeighboursMessage = acknowledgeNeighboursMessage;
         this.ctx = ctx;
         this.localSwarmId = localSwarmId;
     }
@@ -56,12 +56,12 @@ public final class AcknowledgedNeighboursEvent {
         return type;
     }
 
-    public Map<String, SwarmId> getKnownNeighbours() {
-        return knownNeighbours;
-    }
-
     public Set<String> getAcknowledgedNeighbours() {
         return acknowledgedNeighbours;
+    }
+
+    public Optional<AcknowledgeNeighboursMessage> getAcknowledgeNeighboursMessage() {
+        return acknowledgeNeighboursMessage;
     }
 
     public ChannelHandlerContext getCtx() {
@@ -80,8 +80,8 @@ public final class AcknowledgedNeighboursEvent {
         AcknowledgedNeighboursEvent that = (AcknowledgedNeighboursEvent) o;
 
         if (type != that.type) return false;
-        if (!knownNeighbours.equals(that.knownNeighbours)) return false;
         if (!acknowledgedNeighbours.equals(that.acknowledgedNeighbours)) return false;
+        if (!acknowledgeNeighboursMessage.equals(that.acknowledgeNeighboursMessage)) return false;
         if (!ctx.equals(that.ctx)) return false;
         return localSwarmId.equals(that.localSwarmId);
 
@@ -90,8 +90,8 @@ public final class AcknowledgedNeighboursEvent {
     @Override
     public int hashCode() {
         int result = type.hashCode();
-        result = 31 * result + knownNeighbours.hashCode();
         result = 31 * result + acknowledgedNeighbours.hashCode();
+        result = 31 * result + acknowledgeNeighboursMessage.hashCode();
         result = 31 * result + ctx.hashCode();
         result = 31 * result + localSwarmId.hashCode();
         return result;
@@ -101,8 +101,8 @@ public final class AcknowledgedNeighboursEvent {
     public String toString() {
         return "AcknowledgedNeighboursEvent{" +
                "type=" + type +
-               ", knownNeighbours=" + knownNeighbours +
                ", acknowledgedNeighbours=" + acknowledgedNeighbours +
+               ", acknowledgeNeighboursMessage=" + acknowledgeNeighboursMessage +
                ", ctx=" + ctx +
                ", localSwarmId=" + localSwarmId +
                '}';

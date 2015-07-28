@@ -9,51 +9,20 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.Collection;
-import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
  * Created by chrisprobst on 18.08.14.
  */
-public final class IOUtil {
+public final class IoUtil {
 
     public static final int DEFAULT_TRANSFER_BUFFER_SIZE = 65535;
 
-    private IOUtil() {
+    private IoUtil() {
 
-    }
-
-    public static void closeAllAndThrow(Collection<? extends Channel> channels) throws IOException {
-        IOException any = closeAllAndGetException(channels, null);
-        if (any != null) {
-            throw any;
-        }
-    }
-
-    public static IOException closeAllAndGetException(Collection<? extends Channel> channels, Exception suppressed) {
-        Objects.requireNonNull(channels);
-        IOException any = null;
-        if (suppressed != null) {
-            any = suppressed instanceof IOException ? (IOException) suppressed : new IOException(suppressed);
-        }
-        for (Channel channel : channels) {
-            try {
-                channel.close();
-            } catch (IOException e) {
-                if (any == null) {
-                    any = e;
-                } else {
-                    e.addSuppressed(any);
-                    any = e;
-                }
-            }
-        }
-        return any;
     }
 
     public static void transfer(ReadableByteChannel readableByteChannel, WritableByteChannel writableByteChannel)
@@ -72,7 +41,8 @@ public final class IOUtil {
 
     public static byte[] serialize(Object object) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new GZIPOutputStream(byteArrayOutputStream))) {
+        try (ObjectOutputStream objectOutputStream =
+                     new ObjectOutputStream(new GZIPOutputStream(byteArrayOutputStream))) {
             objectOutputStream.writeObject(object);
         }
         return byteArrayOutputStream.toByteArray();
@@ -80,8 +50,8 @@ public final class IOUtil {
 
     @SuppressWarnings("unchecked")
     public static <T> T deserialize(byte[] array) throws IOException, ClassNotFoundException {
-        try (ObjectInputStream objectInputStream = new ObjectInputStream(new GZIPInputStream(new ByteArrayInputStream(
-                array)))) {
+        try (ObjectInputStream objectInputStream =
+                     new ObjectInputStream(new GZIPInputStream(new ByteArrayInputStream(array)))) {
             return (T) objectInputStream.readObject();
         }
     }

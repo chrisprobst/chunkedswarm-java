@@ -10,23 +10,16 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 23.05.15
  */
-public final class SwarmIdRegistrationEvent implements Serializable {
-
-    public enum Type {
-        Registered, Unregistered
-    }
+public final class SwarmIdRegistrationAcknowledgementEvent implements Serializable {
 
     private final Channel channel;
     private final SwarmId swarmId;
-    private final Type type;
 
-    public SwarmIdRegistrationEvent(Channel channel, SwarmId swarmId, Type type) {
+    public SwarmIdRegistrationAcknowledgementEvent(Channel channel, SwarmId swarmId) {
         Objects.requireNonNull(channel);
         Objects.requireNonNull(swarmId);
-        Objects.requireNonNull(type);
         this.channel = channel;
         this.swarmId = swarmId;
-        this.type = type;
     }
 
     public Channel getChannel() {
@@ -37,20 +30,15 @@ public final class SwarmIdRegistrationEvent implements Serializable {
         return swarmId;
     }
 
-    public Type getType() {
-        return type;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdRegistrationEvent that = (SwarmIdRegistrationEvent) o;
+        SwarmIdRegistrationAcknowledgementEvent that = (SwarmIdRegistrationAcknowledgementEvent) o;
 
         if (!channel.equals(that.channel)) return false;
-        if (!swarmId.equals(that.swarmId)) return false;
-        return type == that.type;
+        return swarmId.equals(that.swarmId);
 
     }
 
@@ -58,16 +46,14 @@ public final class SwarmIdRegistrationEvent implements Serializable {
     public int hashCode() {
         int result = channel.hashCode();
         result = 31 * result + swarmId.hashCode();
-        result = 31 * result + type.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return "SwarmIdRegistrationEvent{" +
+        return "SwarmIdRegistrationReplyEvent{" +
                "channel=" + channel +
                ", swarmId=" + swarmId +
-               ", type=" + type +
                '}';
     }
 }

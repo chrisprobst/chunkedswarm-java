@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.codec;
 
-import de.probst.chunkedswarm.io.util.IOUtil;
+import de.probst.chunkedswarm.io.util.IoUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,7 +23,7 @@ public final class SimpleCodec extends MessageToMessageCodec<ByteBuf, Object> {
     protected void encode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {
         if (msg instanceof Serializable) {
             out.add(Unpooled.wrappedBuffer(Unpooled.buffer(1).writeByte(0),
-                                           Unpooled.wrappedBuffer(IOUtil.serialize(msg))));
+                                           Unpooled.wrappedBuffer(IoUtil.serialize(msg))));
         } else {
             out.add(Unpooled.wrappedBuffer(Unpooled.buffer(1).writeByte(1), ((ByteBuf) msg).retain()));
         }
@@ -34,7 +34,7 @@ public final class SimpleCodec extends MessageToMessageCodec<ByteBuf, Object> {
         if (msg.readByte() == 0) {
             byte[] arr = new byte[msg.readableBytes()];
             msg.readBytes(arr);
-            out.add(IOUtil.deserialize(arr));
+            out.add(IoUtil.deserialize(arr));
         } else {
             msg.retain();
             out.add(msg);

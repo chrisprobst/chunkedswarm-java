@@ -3,25 +3,24 @@ package de.probst.chunkedswarm.net.netty.handler.connection;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationEvent;
 import de.probst.chunkedswarm.util.SwarmId;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
+ * Channel sends to parent:
+ * - AcknowledgedNeighboursUpdated
+ * - AcknowledgedNeighboursDisposed
+ *
  * @author Christopher Probst <christopher.probst@hhu.de>
- * @version 1.0, 30.05.15
+ * @version 1.0, 22.05.15
  */
 public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
-
-    // Store all known neighbours here
-    private final Map<String, SwarmId> knownNeighbours = new HashMap<>();
 
     // Store all acknowledged neighbours here
     private final Set<String> acknowledgedNeighbours = new HashSet<>();
@@ -35,27 +34,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     // Did we have updated our parent once ?
     private boolean hasUpdatedOnce;
 
-    private void handleSwarmIdRegistrationEvent(SwarmIdRegistrationEvent swarmIdRegistrationEvent) {
-        switch (swarmIdRegistrationEvent.getType()) {
-            case Registered:
-                knownNeighbours.put(swarmIdRegistrationEvent.getSwarmId().getUuid(),
-                                    swarmIdRegistrationEvent.getSwarmId());
-                break;
-            case Unregistered:
-                knownNeighbours.remove(swarmIdRegistrationEvent.getSwarmId().getUuid());
-                break;
-            case Acknowledged:
-                knownNeighbours.put(swarmIdRegistrationEvent.getSwarmId().getUuid(),
-                                    swarmIdRegistrationEvent.getSwarmId());
-                break;
-        }
-    }
-
-    private void handleSwarmIdAcquisitionEvent(SwarmIdAcquisitionEvent evt) {
-        localSwarmId = evt.getSwarmId();
-    }
-
-    private void fireAcknowledgedNeighboursUpdateEvent() {
+    private void fireAcknowledgedNeighboursUpdateEvent(AcknowledgeNeighboursMessage msg) {
         Channel parent = ctx.channel().parent();
         if (parent == null) {
             throw new IllegalStateException("parent == null");
@@ -63,8 +42,8 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
         parent.pipeline()
               .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Update,
-                                                                      knownNeighbours,
                                                                       acknowledgedNeighbours,
+                                                                      Optional.of(msg),
                                                                       ctx,
                                                                       localSwarmId));
 
@@ -83,23 +62,25 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
         parent.pipeline()
               .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Dispose,
-                                                                      knownNeighbours,
                                                                       acknowledgedNeighbours,
+                                                                      Optional.empty(),
                                                                       ctx,
                                                                       localSwarmId));
+    }
+
+    private void handleSwarmIdAcquisitionEvent(SwarmIdAcquisitionEvent evt) {
+        localSwarmId = evt.getSwarmId();
     }
 
     private void acknowledgeNeighbours(AcknowledgeNeighboursMessage msg) {
         msg.getAddedNeighbours().forEach(acknowledgedNeighbours::add);
         msg.getRemovedNeighbours().forEach(acknowledgedNeighbours::remove);
-        fireAcknowledgedNeighboursUpdateEvent();
+        fireAcknowledgedNeighboursUpdateEvent(msg);
     }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof SwarmIdRegistrationEvent) {
-            handleSwarmIdRegistrationEvent((SwarmIdRegistrationEvent) evt);
-        } else if (evt instanceof SwarmIdAcquisitionEvent) {
+        if (evt instanceof SwarmIdAcquisitionEvent) {
             handleSwarmIdAcquisitionEvent((SwarmIdAcquisitionEvent) evt);
         }
 

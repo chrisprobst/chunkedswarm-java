@@ -56,10 +56,13 @@ public final class GraphHandler extends ChannelHandlerAdapter {
     }
 
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
-        if (evt.getType() == AcknowledgedNeighboursEvent.Type.Update) {
-            acknowledgedNeighbours.put(evt.getLocalSwarmId().getUuid(), evt);
-        } else if (evt.getType() == AcknowledgedNeighboursEvent.Type.Dispose) {
-            acknowledgedNeighbours.remove(evt.getLocalSwarmId().getUuid());
+        switch (evt.getType()) {
+            case Update:
+                acknowledgedNeighbours.put(evt.getLocalSwarmId().getUuid(), evt);
+                break;
+            case Dispose:
+                acknowledgedNeighbours.remove(evt.getLocalSwarmId().getUuid());
+                break;
         }
 
         NodeGroups<String> meshes = computeMeshes();

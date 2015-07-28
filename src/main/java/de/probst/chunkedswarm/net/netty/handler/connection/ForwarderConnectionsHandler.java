@@ -62,11 +62,17 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     private ChannelPromise acknowledgeChannelPromise;
 
     private void fireChannelConnected(SwarmId swarmId, Channel channel) {
-        ctx.pipeline().fireUserEventTriggered(new NeighbourConnectionEvent(swarmId, channel, NeighbourConnectionEvent.Type.Connected));
+        ctx.pipeline()
+           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
+                                                                channel,
+                                                                NeighbourConnectionEvent.Type.Connected));
     }
 
     private void fireChannelDisconnected(SwarmId swarmId, Channel channel) {
-        ctx.pipeline().fireUserEventTriggered(new NeighbourConnectionEvent(swarmId, channel, NeighbourConnectionEvent.Type.Disconnected));
+        ctx.pipeline()
+           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
+                                                                channel,
+                                                                NeighbourConnectionEvent.Type.Disconnected));
     }
 
     private void initBootstrap() {

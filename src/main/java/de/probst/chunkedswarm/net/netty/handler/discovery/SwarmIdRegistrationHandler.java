@@ -1,6 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationAcknowledgementEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetCollectorAddressMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIdMessage;
@@ -18,6 +19,16 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Channel sends to pipeline:
+ * - SwarmIdAcquired
+ * <p>
+ * Channel broadcasts to parent and all other channels:
+ * - SwarmIdRegistered
+ * - SwarmIdUnregistered
+ * <p>
+ * Channel receives from all other channels:
+ * - SwarmIdRegisteredAcknowledgement
+ *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
  */
@@ -51,6 +62,8 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         SwarmIdRegistrationEvent reg = new SwarmIdRegistrationEvent(this.ctx.channel(),
                                                                     localSwarmId,
                                                                     SwarmIdRegistrationEvent.Type.Registered);
+        // Send to parent and remaining channels
+        ctx.channel().parent().pipeline().fireUserEventTriggered(reg);
         channels.forEach(c -> c.pipeline().fireUserEventTriggered(reg));
     }
 
@@ -58,14 +71,15 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         SwarmIdRegistrationEvent unreg = new SwarmIdRegistrationEvent(this.ctx.channel(),
                                                                       localSwarmId,
                                                                       SwarmIdRegistrationEvent.Type.Unregistered);
+        // Send to parent and remaining channels
+        ctx.channel().parent().pipeline().fireUserEventTriggered(unreg);
         channels.forEach(c -> c.pipeline().fireUserEventTriggered(unreg));
     }
 
-    private void replySwarmIdAcknowledged(SwarmIdRegistrationEvent swarmIdRegistrationEvent) {
-        SwarmIdRegistrationEvent ack = new SwarmIdRegistrationEvent(this.ctx.channel(),
-                                                                    localSwarmId,
-                                                                    SwarmIdRegistrationEvent.Type.Acknowledged);
-        swarmIdRegistrationEvent.getChannel().pipeline().fireUserEventTriggered(ack);
+    private void replySwarmIdAcknowledged(SwarmIdRegistrationEvent evt) {
+        SwarmIdRegistrationAcknowledgementEvent ack = new SwarmIdRegistrationAcknowledgementEvent(this.ctx.channel(),
+                                                                                                  localSwarmId);
+        evt.getChannel().pipeline().fireUserEventTriggered(ack);
     }
 
     private void setCollectorAddress(ChannelHandlerContext ctx, SetCollectorAddressMessage setCollectorAddressMessage) {
@@ -99,17 +113,18 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
            .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
     }
 
-    private void handleSwarmIdRegistrationEvent(SwarmIdRegistrationEvent swarmIdRegistrationEvent) {
-        switch (swarmIdRegistrationEvent.getType()) {
+    private void handleSwarmIdRegistrationAcknowledgementEvent(SwarmIdRegistrationAcknowledgementEvent evt) {
+        updateNeighboursMessage.getAddNeighbours().add(evt.getSwarmId());
+    }
+
+    private void handleSwarmIdRegistrationEvent(SwarmIdRegistrationEvent evt) {
+        switch (evt.getType()) {
             case Registered:
-                updateNeighboursMessage.getAddNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
-                replySwarmIdAcknowledged(swarmIdRegistrationEvent);
+                updateNeighboursMessage.getAddNeighbours().add(evt.getSwarmId());
+                replySwarmIdAcknowledged(evt);
                 break;
             case Unregistered:
-                updateNeighboursMessage.getRemoveNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
-                break;
-            case Acknowledged:
-                updateNeighboursMessage.getAddNeighbours().add(swarmIdRegistrationEvent.getSwarmId());
+                updateNeighboursMessage.getRemoveNeighbours().add(evt.getSwarmId());
                 break;
         }
     }
@@ -169,6 +184,9 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
             handleSwarmIdRegistrationEvent((SwarmIdRegistrationEvent) evt);
 
             super.userEventTriggered(ctx, evt);
+        }
+        if (evt instanceof SwarmIdRegistrationAcknowledgementEvent) {
+            handleSwarmIdRegistrationAcknowledgementEvent((SwarmIdRegistrationAcknowledgementEvent) evt);
         } else {
             super.userEventTriggered(ctx, evt);
         }
