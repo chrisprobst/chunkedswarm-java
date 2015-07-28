@@ -21,34 +21,42 @@ public final class GraphHandler extends ChannelHandlerAdapter {
     private final Map<String, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
 
     private NodeGroups<String> computeMeshes() {
-        // Create a graph to compute the meshes
-        Graph<String> graph = new Graph<>();
+        // Create graphs to compute the meshes
+        Graph<String> outboundGraph = new Graph<>();
+        Graph<String> inboundGraph = new Graph<>();
 
-        // The master node group
-        NodeGroup<String> masterNodeGroup = new NodeGroup<>();
+        // The master node groups
+        NodeGroup<String> masterOutboundNodeGroup = new NodeGroup<>();
+        NodeGroup<String> masterInboundNodeGroup = new NodeGroup<>();
 
-        // Create a node group for each node
+        // Create node groups for each node
         acknowledgedNeighbours.values().forEach(evt -> {
-            NodeGroup<String> nodeGroup = new NodeGroup<>();
+            NodeGroup<String> outboundNodeGroup = new NodeGroup<>();
+            NodeGroup<String> inboundNodeGroup = new NodeGroup<>();
 
             // Add all acknowledged neighbours into group
-            nodeGroup.getNodes().addAll(evt.getAcknowledgedOutboundNeighbours());
+            outboundNodeGroup.getNodes().addAll(evt.getAcknowledgedOutboundNeighbours());
+            inboundNodeGroup.getNodes().addAll(evt.getAcknowledgedInboundNeighbours());
 
             // Of course, each node is connected with the master
-            nodeGroup.getNodes().add(masterUuid);
+            outboundNodeGroup.getNodes().add(masterUuid);
+            inboundNodeGroup.getNodes().add(masterUuid);
 
             // The master is connected with this node
-            masterNodeGroup.getNodes().add(evt.getLocalSwarmId().getUuid());
+            masterOutboundNodeGroup.getNodes().add(evt.getLocalSwarmId().getUuid());
+            masterInboundNodeGroup.getNodes().add(evt.getLocalSwarmId().getUuid());
 
-            // Put node group into graph
-            graph.getNodes().put(evt.getLocalSwarmId().getUuid(), nodeGroup);
+            // Put node groups into graphs
+            outboundGraph.getNodes().put(evt.getLocalSwarmId().getUuid(), outboundNodeGroup);
+            inboundGraph.getNodes().put(evt.getLocalSwarmId().getUuid(), inboundNodeGroup);
         });
 
-        // Put the view of the master into the graph
-        graph.getNodes().put(masterUuid, masterNodeGroup);
+        // Put the view of the master into the graphs
+        outboundGraph.getNodes().put(masterUuid, masterOutboundNodeGroup);
+        inboundGraph.getNodes().put(masterUuid, masterInboundNodeGroup);
 
         // Compute the meshes
-        return graph.findMeshes(masterUuid);
+        return outboundGraph.findMeshes(masterUuid, inboundGraph);
     }
 
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
@@ -60,6 +68,7 @@ public final class GraphHandler extends ChannelHandlerAdapter {
                 acknowledgedNeighbours.remove(evt.getLocalSwarmId().getUuid());
                 break;
         }
+
 
         NodeGroups<String> meshes = computeMeshes();
         if (!meshes.getGroups().isEmpty()) {

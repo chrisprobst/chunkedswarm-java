@@ -182,7 +182,16 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                 }
                 break;
             case Inbound:
-
+                switch (evt.getType()) {
+                    case Connected:
+                        // Add to added neighbours
+                        acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmId().getUuid());
+                        break;
+                    case Disconnected:
+                        // Add to removed neighbours
+                        acknowledgeNeighboursMessage.getRemovedInboundNeighbours().add(evt.getSwarmId().getUuid());
+                        break;
+                }
         }
     }
 
