@@ -37,29 +37,29 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
     // The local swarm id
     private SwarmId localSwarmId;
 
-    private void fireSwarmIdsCollected(UpdateNeighboursMessage updateNeighboursMessage) {
-        ctx.pipeline().fireUserEventTriggered(new SwarmIdCollectionEvent(knownSwarmIds, updateNeighboursMessage));
+    private void fireSwarmIdsCollected(UpdateNeighboursMessage msg) {
+        ctx.pipeline().fireUserEventTriggered(new SwarmIdCollectionEvent(knownSwarmIds, msg));
     }
 
     private void fireSwarmIdAcquired() {
         ctx.pipeline().fireUserEventTriggered(new SwarmIdAcquisitionEvent(localSwarmId));
     }
 
-    private void setLocalSwarmId(SetLocalSwarmIdMessage setLocalSwarmIdMessage) throws Exception {
+    private void setLocalSwarmId(SetLocalSwarmIdMessage msg) {
         // Safe the new swarm id
-        localSwarmId = setLocalSwarmIdMessage.getLocalSwarmId();
+        localSwarmId = msg.getLocalSwarmId();
 
         // Let handler chain know, that we have acquired our swarm id
         fireSwarmIdAcquired();
     }
 
-    private void updateNeighbours(UpdateNeighboursMessage updateNeighboursMessage) {
+    private void updateNeighbours(UpdateNeighboursMessage msg) {
         // Add and remove neighbours
-        knownSwarmIds.addAll(updateNeighboursMessage.getAddNeighbours());
-        knownSwarmIds.removeAll(updateNeighboursMessage.getRemoveNeighbours());
+        knownSwarmIds.addAll(msg.getAddNeighbours());
+        knownSwarmIds.removeAll(msg.getRemoveNeighbours());
 
         // Let handler chain know, that we have updated our set of swarm ids0
-        fireSwarmIdsCollected(updateNeighboursMessage);
+        fireSwarmIdsCollected(msg);
     }
 
     public SwarmIdCollectionHandler(SocketAddress announceAddress) {

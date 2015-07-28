@@ -2,6 +2,7 @@ package de.probst.chunkedswarm.net.netty;
 
 import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
+import de.probst.chunkedswarm.net.netty.handler.connection.CollectorConnectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdCollectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
@@ -34,6 +35,7 @@ public final class Forwarder implements Closeable {
 
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress collectorAcceptorAddress;
+    private final Channel distributorChannel;
     private final ChannelGroup collectorChannels, allChannels;
 
     // Represents the result of initialization
@@ -56,6 +58,9 @@ public final class Forwarder implements Closeable {
                                // Track all channels
                                ch.pipeline().addLast(new ChannelGroupHandler(collectorChannels));
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
+
+                               // Add the collector connections tracker
+                               ch.pipeline().addLast(new CollectorConnectionHandler(distributorChannel));
 
                                ch.pipeline().addLast(new ForwarderHandler());
                            }
@@ -128,27 +133,33 @@ public final class Forwarder implements Closeable {
         // **************** Initialize *****************
         // *********************************************
 
-        // Initialize collector accept channel
-        ChannelFuture bindFuture = openCollectorAcceptChannel();
+        // Initialize connection to distributor
+        ChannelFuture connectFuture = connectToDistributor(distributorAddress);
+
+        // Store distributor channel
+        distributorChannel = connectFuture.channel();
 
         // Create new init promise
-        initChannelPromise = bindFuture.channel().newPromise();
+        initChannelPromise = distributorChannel.newPromise();
 
-        // Listen for bind
-        bindFuture.addListener(fut -> {
+        // Listen for connection
+        connectFuture.addListener(fut -> {
 
-            // Check for bind success
+            // Check for connect success
             if (!fut.isSuccess()) {
 
                 // Stop initialization here
                 initChannelPromise.setFailure(fut.cause());
             } else {
 
-                // Initialize connection to distributor and listen for connection
-                connectToDistributor(distributorAddress).addListener(fut2 -> {
+                // Initialize collector accept channel and listen for bind
+                openCollectorAcceptChannel().addListener(fut2 -> {
 
                     // Check for connect success
                     if (!fut2.isSuccess()) {
+
+                        // Close channel...
+                        distributorChannel.close();
 
                         // Stop initialization here
                         initChannelPromise.setFailure(fut2.cause());

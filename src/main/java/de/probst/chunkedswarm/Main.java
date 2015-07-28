@@ -30,6 +30,12 @@ public class Main {
                                              new InetSocketAddress("localhost", 1337)));
             }
 
+            System.in.read();
+
+            forwarders.get(1).close();
+
+            System.in.read();
+
             Thread.sleep(5000);
 //
             for (int i = 0; i < 40; i++) {

@@ -11,22 +11,30 @@ import java.util.Objects;
  */
 public final class NeighbourConnectionEvent {
 
+    public enum Direction {
+        Inbound, Outbound
+    }
+
     public enum Type {
         Connected, Disconnected
     }
 
     private final SwarmId swarmId;
     private final Channel channel;
+    private final Direction direction;
     private final Type type;
 
     public NeighbourConnectionEvent(SwarmId swarmId,
                                     Channel channel,
+                                    Direction direction,
                                     Type type) {
         Objects.requireNonNull(swarmId);
         Objects.requireNonNull(channel);
+        Objects.requireNonNull(direction);
         Objects.requireNonNull(type);
         this.swarmId = swarmId;
         this.channel = channel;
+        this.direction = direction;
         this.type = type;
     }
 
@@ -36,6 +44,10 @@ public final class NeighbourConnectionEvent {
 
     public Channel getChannel() {
         return channel;
+    }
+
+    public Direction getDirection() {
+        return direction;
     }
 
     public Type getType() {
@@ -51,6 +63,7 @@ public final class NeighbourConnectionEvent {
 
         if (!swarmId.equals(that.swarmId)) return false;
         if (!channel.equals(that.channel)) return false;
+        if (direction != that.direction) return false;
         return type == that.type;
 
     }
@@ -59,15 +72,17 @@ public final class NeighbourConnectionEvent {
     public int hashCode() {
         int result = swarmId.hashCode();
         result = 31 * result + channel.hashCode();
+        result = 31 * result + direction.hashCode();
         result = 31 * result + type.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return "ConnectionEvent{" +
+        return "NeighbourConnectionEvent{" +
                "swarmId=" + swarmId +
                ", channel=" + channel +
+               ", direction=" + direction +
                ", type=" + type +
                '}';
     }
