@@ -34,6 +34,7 @@ import java.util.Objects;
 public final class Distributor implements Closeable {
 
     private final SwarmIdManager swarmIdManager;
+    private final String masterUuid;
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;
@@ -51,7 +52,7 @@ public final class Distributor implements Closeable {
                            protected void initChannel(ServerChannel ch) throws Exception {
 
                                // The server channel handles graph computation
-                               ch.pipeline().addLast(new GraphHandler(swarmIdManager));
+                               ch.pipeline().addLast(new GraphHandler(masterUuid));
                            }
                        })
                        .childOption(ChannelOption.TCP_NODELAY, true)
@@ -98,6 +99,9 @@ public final class Distributor implements Closeable {
         this.eventLoopGroup = eventLoopGroup;
         this.socketAddress = socketAddress;
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
+
+        // Create master uuid and blacklist this uuid
+        swarmIdManager.blacklistUuid(masterUuid = swarmIdManager.newRandomUuid());
 
         // *********************************************
         // **************** Initialize *****************

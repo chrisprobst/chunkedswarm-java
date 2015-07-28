@@ -1,7 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.graph;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
-import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -14,9 +13,6 @@ import java.util.Objects;
  * @version 1.0, 02.06.15
  */
 public final class GraphHandler extends ChannelHandlerAdapter {
-
-    // The swarm id manager
-    private final SwarmIdManager swarmIdManager;
 
     // The master uuid, so nobody can choose this id
     private final String masterUuid;
@@ -71,13 +67,9 @@ public final class GraphHandler extends ChannelHandlerAdapter {
         }
     }
 
-    public GraphHandler(SwarmIdManager swarmIdManager) {
-        Objects.requireNonNull(swarmIdManager);
-        this.swarmIdManager = swarmIdManager;
-
-        // Create a new master uuid and put into blacklist
-        masterUuid = swarmIdManager.newRandomUuid();
-        swarmIdManager.blacklistUuid(masterUuid);
+    public GraphHandler(String masterUuid) {
+        Objects.requireNonNull(masterUuid);
+        this.masterUuid = masterUuid;
     }
 
     @Override
