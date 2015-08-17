@@ -3,6 +3,7 @@ package de.probst.chunkedswarm.net.netty.handler.graph;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.group.ChannelGroup;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +14,9 @@ import java.util.Objects;
  * @version 1.0, 02.06.15
  */
 public final class GraphHandler extends ChannelHandlerAdapter {
+
+    // All channels
+    private final ChannelGroup allChannels;
 
     // The master uuid, so nobody can choose this id
     private final String masterUuid;
@@ -69,15 +73,18 @@ public final class GraphHandler extends ChannelHandlerAdapter {
                 break;
         }
 
-
         NodeGroups<String> meshes = computeMeshes();
         if (!meshes.getGroups().isEmpty()) {
             System.out.println("Node group size: " + meshes.getGroups().get(0).getNodes().size());
+        } else {
+            System.out.println("Node group empty");
         }
     }
 
-    public GraphHandler(String masterUuid) {
+    public GraphHandler(ChannelGroup allChannels, String masterUuid) {
+        Objects.requireNonNull(allChannels);
         Objects.requireNonNull(masterUuid);
+        this.allChannels = allChannels;
         this.masterUuid = masterUuid;
     }
 

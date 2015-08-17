@@ -18,7 +18,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
@@ -41,13 +40,13 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     public static final long ACKNOWLEDGE_INTERVAL_MS = 1000;
 
     // The forwarder channel group
-    private final ChannelGroup forwarderChannels;
-
-    // The event loop group of all forwarder connections
-    private final EventLoopGroup eventLoopGroup;
+    private final ChannelGroup channels;
 
     // Used to keep track of engaged forwarder channels
     private final ChannelGroup engagedForwarderChannels;
+
+    // The event loop group of all forwarder connections
+    private final EventLoopGroup eventLoopGroup;
 
     // The bootstrap to create forwarder connections
     private final Bootstrap bootstrap = new Bootstrap();
@@ -126,7 +125,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         pendingConnections.put(swarmId, connectFuture);
 
         // Add to channel group
-        forwarderChannels.add(connectFuture.channel());
+        channels.add(connectFuture.channel());
 
         // If connecting succeeds, notify us!
         connectFuture.addListener(fut -> {
@@ -210,13 +209,12 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         initBootstrap(evt.getSwarmId());
     }
 
-    private void handleAcknowledgeNeighboursEvent(AcknowledgeNeighboursMessage evt) {
+    private void handleAcknowledgeNeighboursEvent(AcknowledgeNeighboursEvent evt) {
         acknowledgeNeighbours();
         scheduleFireAcknowledgeNeighbours();
     }
 
     private void acknowledgeNeighbours() {
-
         // No updates, skip this update
         if (acknowledgeNeighboursMessage.isEmpty()) {
             return;
@@ -249,12 +247,14 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         acknowledgeNeighboursMessage = new AcknowledgeNeighboursMessage();
     }
 
-    public ForwarderConnectionsHandler(ChannelGroup forwarderChannels, EventLoopGroup eventLoopGroup) {
-        Objects.requireNonNull(forwarderChannels);
+    public ForwarderConnectionsHandler(ChannelGroup channels,
+                                       ChannelGroup engagedForwarderChannels,
+                                       EventLoopGroup eventLoopGroup) {
+        Objects.requireNonNull(channels);
         Objects.requireNonNull(eventLoopGroup);
-        this.forwarderChannels = forwarderChannels;
+        this.channels = channels;
         this.eventLoopGroup = eventLoopGroup;
-        engagedForwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        this.engagedForwarderChannels = engagedForwarderChannels;
     }
 
     @Override
@@ -265,8 +265,8 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
             handleConnectionEvent((NeighbourConnectionEvent) evt);
         } else if (evt instanceof SwarmIdAcquisitionEvent) {
             handleSwarmIdAcquisitionEvent((SwarmIdAcquisitionEvent) evt);
-        }else if (evt instanceof AcknowledgeNeighboursMessage) {
-            handleAcknowledgeNeighboursEvent((AcknowledgeNeighboursMessage) evt);
+        } else if (evt instanceof AcknowledgeNeighboursEvent) {
+            handleAcknowledgeNeighboursEvent((AcknowledgeNeighboursEvent) evt);
         }
 
         super.userEventTriggered(ctx, evt);

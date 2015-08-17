@@ -144,7 +144,6 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     }
 
     private void updateNeighbours() {
-        ctx.channel().pipeline().fireExceptionCaught(new IllegalStateException("BUG"));
 
         // We are not ready to participate yet
         if (localSwarmId == null) {

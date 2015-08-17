@@ -33,10 +33,12 @@ import java.util.Objects;
  */
 public final class Forwarder implements Closeable {
 
+    public static final int BACKLOG = 256;
+
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress collectorAcceptorAddress;
     private final Channel distributorChannel;
-    private final ChannelGroup collectorChannels, allChannels;
+    private final ChannelGroup collectorChannels, engagedForwarderChannels, allChannels;
 
     // Represents the result of initialization
     private final ChannelPromise initChannelPromise;
@@ -45,7 +47,7 @@ public final class Forwarder implements Closeable {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
-                       .option(ChannelOption.SO_BACKLOG, 256)
+                       .option(ChannelOption.SO_BACKLOG, BACKLOG)
                        .childOption(ChannelOption.TCP_NODELAY, true)
                        .childHandler(new ChannelInitializer<Channel>() {
                            @Override
@@ -97,7 +99,10 @@ public final class Forwarder implements Closeable {
                          ch.pipeline().addLast(new SwarmIdCollectionHandler(collectorAcceptorAddress));
 
                          // Handle forwarder connections based on swarm id collections
-                         ch.pipeline().addLast(new ForwarderConnectionsHandler(allChannels, eventLoopGroup));
+                         ch.pipeline()
+                           .addLast(new ForwarderConnectionsHandler(allChannels,
+                                                                    engagedForwarderChannels,
+                                                                    eventLoopGroup));
 
                          // Handle application logic
                          ch.pipeline().addLast(new ForwarderHandler());
@@ -127,6 +132,7 @@ public final class Forwarder implements Closeable {
         this.eventLoopGroup = eventLoopGroup;
         this.collectorAcceptorAddress = collectorAcceptorAddress;
         collectorChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        engagedForwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
         allChannels = new DefaultChannelGroup(eventLoopGroup.next());
 
         // *********************************************

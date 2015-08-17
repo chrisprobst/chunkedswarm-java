@@ -52,7 +52,7 @@ public final class Distributor implements Closeable {
                            protected void initChannel(ServerChannel ch) throws Exception {
 
                                // The server channel handles graph computation
-                               ch.pipeline().addLast(new GraphHandler(masterUuid));
+                               ch.pipeline().addLast(new GraphHandler(allChannels, masterUuid));
                            }
                        })
                        .childOption(ChannelOption.TCP_NODELAY, true)

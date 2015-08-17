@@ -47,8 +47,8 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
                                                                       acknowledgedOutboundNeighbours,
                                                                       acknowledgedInboundNeighbours,
                                                                       Optional.of(msg),
-                                                                      ctx,
-                                                                      localSwarmId));
+                                                                      localSwarmId,
+                                                                      ctx.channel()));
 
         hasUpdatedOnce = true;
     }
@@ -68,8 +68,8 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
                                                                       acknowledgedOutboundNeighbours,
                                                                       acknowledgedInboundNeighbours,
                                                                       Optional.empty(),
-                                                                      ctx,
-                                                                      localSwarmId));
+                                                                      localSwarmId,
+                                                                      ctx.channel()));
     }
 
     private void handleSwarmIdAcquisitionEvent(SwarmIdAcquisitionEvent evt) {
