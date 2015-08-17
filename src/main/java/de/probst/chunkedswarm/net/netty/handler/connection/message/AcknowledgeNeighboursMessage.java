@@ -49,12 +49,21 @@ public final class AcknowledgeNeighboursMessage implements Serializable {
         return removedOutboundNeighbours;
     }
 
+    public boolean isOutboundDistinct() {
+        return !addedOutboundNeighbours.stream().anyMatch(removedOutboundNeighbours::contains);
+    }
+
+
     public Set<String> getAddedInboundNeighbours() {
         return addedInboundNeighbours;
     }
 
     public Set<String> getRemovedInboundNeighbours() {
         return removedInboundNeighbours;
+    }
+
+    public boolean isInboundDistinct() {
+        return !addedInboundNeighbours.stream().anyMatch(removedInboundNeighbours::contains);
     }
 
     @Override

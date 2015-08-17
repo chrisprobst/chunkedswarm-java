@@ -39,6 +39,10 @@ public final class UpdateNeighboursMessage implements Serializable {
         return removeNeighbours;
     }
 
+    public boolean isDistinct() {
+        return !addNeighbours.stream().anyMatch(removeNeighbours::contains);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

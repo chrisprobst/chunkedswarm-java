@@ -1,6 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.connection;
 
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
+import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgeNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.NeighbourConnectionEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
@@ -28,8 +29,9 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Channel sends to pipeline:
+ * Handler sends to owner channel:
  * - NeighbourConnectionEvent
+ * - AcknowledgeNeighboursEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
@@ -64,6 +66,14 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
 
     // The acknowledge promise is set, when neighbours get acknowledged
     private ChannelPromise acknowledgeChannelPromise;
+
+    private void fireAcknowledgeNeighbours() {
+        ctx.pipeline().fireUserEventTriggered(new AcknowledgeNeighboursEvent());
+    }
+
+    private void scheduleFireAcknowledgeNeighbours() {
+        ctx.executor().schedule(this::fireAcknowledgeNeighbours, ACKNOWLEDGE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    }
 
     private void fireChannelConnected(SwarmId swarmId, Channel channel) {
         ctx.pipeline()
@@ -200,11 +210,25 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         initBootstrap(evt.getSwarmId());
     }
 
+    private void handleAcknowledgeNeighboursEvent(AcknowledgeNeighboursMessage evt) {
+        acknowledgeNeighbours();
+        scheduleFireAcknowledgeNeighbours();
+    }
+
     private void acknowledgeNeighbours() {
 
         // No updates, skip this update
         if (acknowledgeNeighboursMessage.isEmpty()) {
             return;
+        }
+
+        // Make sure, the message is valid
+        if (!acknowledgeNeighboursMessage.isOutboundDistinct() || !acknowledgeNeighboursMessage.isInboundDistinct()) {
+            // Send to channel
+            ctx.channel()
+               .pipeline()
+               .fireExceptionCaught(new IllegalStateException("!acknowledgeNeighboursMessage.isOutboundDistinct() || " +
+                                                              "!acknowledgeNeighboursMessage.isInboundDistinct()"));
         }
 
         // Pending acknowledge channel future, just ignore the current update
@@ -241,6 +265,8 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
             handleConnectionEvent((NeighbourConnectionEvent) evt);
         } else if (evt instanceof SwarmIdAcquisitionEvent) {
             handleSwarmIdAcquisitionEvent((SwarmIdAcquisitionEvent) evt);
+        }else if (evt instanceof AcknowledgeNeighboursMessage) {
+            handleAcknowledgeNeighboursEvent((AcknowledgeNeighboursMessage) evt);
         }
 
         super.userEventTriggered(ctx, evt);
@@ -249,10 +275,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        ctx.executor().scheduleAtFixedRate(this::acknowledgeNeighbours,
-                                           ACKNOWLEDGE_INTERVAL_MS,
-                                           ACKNOWLEDGE_INTERVAL_MS,
-                                           TimeUnit.MILLISECONDS);
+        scheduleFireAcknowledgeNeighbours();
         super.channelActive(ctx);
     }
 }

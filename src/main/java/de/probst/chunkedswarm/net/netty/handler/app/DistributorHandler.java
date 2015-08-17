@@ -11,7 +11,7 @@ public class DistributorHandler extends ChannelHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        cause.printStackTrace();
+        System.out.println(cause);
         ctx.close();
     }
 }

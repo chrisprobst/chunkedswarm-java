@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Channel sends to pipeline:
+ * Handler sends to owner channel:
  * - SwarmIdCollectionEvent
  * - SwarmIdAcquisitionEvent
  *

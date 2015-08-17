@@ -3,6 +3,7 @@ package de.probst.chunkedswarm.net.netty.handler.discovery;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationAcknowledgementEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdRegistrationEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.UpdateNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetCollectorAddressMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIdMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
@@ -19,13 +20,14 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Channel sends to pipeline:
+ * Handler sends to owner channel:
  * - SwarmIdAcquisitionEvent
+ * - UpdateNeighboursEvent
  * <p>
- * Channel broadcasts to parent and all other channels:
+ * Handler broadcasts to parent channel and all other channels:
  * - SwarmIdRegistrationEvent
  * <p>
- * Channel receives from all other channels:
+ * Handler receives from all other channels:
  * - SwarmIdRegisteredAcknowledgementEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -55,6 +57,14 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
     private void fireSwarmIdAcquired() {
         ctx.pipeline().fireUserEventTriggered(new SwarmIdAcquisitionEvent(localSwarmId));
+    }
+
+    private void fireUpdateNeighbours() {
+        ctx.pipeline().fireUserEventTriggered(new UpdateNeighboursEvent());
+    }
+
+    private void scheduleFireUpdateNeighbours() {
+        ctx.executor().schedule(this::fireUpdateNeighbours, UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 
     private void broadcastSwarmIdRegistered() {
@@ -128,7 +138,14 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         }
     }
 
+    private void handleUpdateNeighboursEvent(UpdateNeighboursEvent evt) {
+        updateNeighbours();
+        scheduleFireUpdateNeighbours();
+    }
+
     private void updateNeighbours() {
+        ctx.channel().pipeline().fireExceptionCaught(new IllegalStateException("BUG"));
+
         // We are not ready to participate yet
         if (localSwarmId == null) {
             return;
@@ -136,6 +153,15 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
         // No updates, skip this update
         if (updateNeighboursMessage.isEmpty()) {
+            return;
+        }
+
+        // Make sure, the message is valid
+        if (!updateNeighboursMessage.isDistinct()) {
+            // Send to channel
+            ctx.channel()
+               .pipeline()
+               .fireExceptionCaught(new IllegalStateException("!updateNeighboursMessage.isDistinct()"));
             return;
         }
 
@@ -186,6 +212,9 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
         }
         if (evt instanceof SwarmIdRegistrationAcknowledgementEvent) {
             handleSwarmIdRegistrationAcknowledgementEvent((SwarmIdRegistrationAcknowledgementEvent) evt);
+        }
+        if (evt instanceof UpdateNeighboursEvent) {
+            handleUpdateNeighboursEvent((UpdateNeighboursEvent) evt);
         } else {
             super.userEventTriggered(ctx, evt);
         }
@@ -194,8 +223,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        ctx.executor()
-           .scheduleAtFixedRate(this::updateNeighbours, UPDATE_INTERVAL_MS, UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+        scheduleFireUpdateNeighbours();
         super.channelActive(ctx);
     }
 

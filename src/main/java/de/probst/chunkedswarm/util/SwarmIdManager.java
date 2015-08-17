@@ -97,5 +97,7 @@ public final class SwarmIdManager {
         // Remove from map
         addressToSwarmId.remove(swarmId.getAddress());
         uuidToSwarmId.remove(swarmId.getUuid());
+
+        // TODO: Maybe cache last 10.000 swarm ids ?
     }
 }

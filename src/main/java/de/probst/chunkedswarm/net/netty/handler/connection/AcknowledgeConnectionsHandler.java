@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Channel sends to parent:
+ * Handler sends to parent channel:
  * - AcknowledgedNeighboursEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>

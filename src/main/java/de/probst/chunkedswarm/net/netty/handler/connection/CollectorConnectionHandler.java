@@ -10,7 +10,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.Objects;
 
 /**
- * Channel sends to report pipeline:
+ * Handler sends to report channel:
  * - NeighbourConnectionEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>

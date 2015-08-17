@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.graph;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.ListIterator;
@@ -184,6 +184,6 @@ public final class Graph<T> implements Cloneable {
         // Find all meshes of the nodes
         NodeGroups<Integer> meshes = g.findMeshes(0, g2);
 
-        System.out.println(meshes.equals(new NodeGroups<>(Arrays.asList(expected))));
+        System.out.println(meshes.equals(new NodeGroups<>(Collections.singletonList(expected))));
     }
 }
