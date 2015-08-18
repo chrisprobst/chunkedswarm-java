@@ -133,6 +133,7 @@ public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
                 replySwarmIdAcknowledged(evt);
                 break;
             case Unregistered:
+                updateNeighboursMessage.getAddNeighbours().remove(evt.getSwarmId());
                 updateNeighboursMessage.getRemoveNeighbours().add(evt.getSwarmId());
                 break;
         }

@@ -74,6 +74,15 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         ctx.executor().schedule(this::fireAcknowledgeNeighbours, ACKNOWLEDGE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 
+    private void fireChannelConnectionRefused(SwarmId swarmId, Channel channel) {
+        ctx.pipeline()
+           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
+                                                                channel,
+                                                                NeighbourConnectionEvent.Direction.Outbound,
+                                                                NeighbourConnectionEvent.Type.ConnectionRefused));
+    }
+
+
     private void fireChannelConnected(SwarmId swarmId, Channel channel) {
         ctx.pipeline()
            .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
@@ -130,10 +139,14 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         // If connecting succeeds, notify us!
         connectFuture.addListener(fut -> {
             if (fut.isSuccess()) {
+                // Tell channel that outbound connection is established
                 fireChannelConnected(swarmId, channel);
 
-                // Let this handler know, if a channel got disconnected
+                // Look for channel close event
                 channel.closeFuture().addListener(fut2 -> fireChannelDisconnected(swarmId, channel));
+            } else {
+                // Tell channel that outbound connection was refused
+                fireChannelConnectionRefused(swarmId, channel);
             }
 
             // Channel will be closed, if connecting did not succeed!
@@ -158,6 +171,20 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         switch (evt.getDirection()) {
             case Outbound:
                 switch (evt.getType()) {
+                    case ConnectionRefused:
+                        if (!pendingConnections.containsKey(evt.getSwarmId())) {
+                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmId())");
+                        }
+                        if (engagedConnections.containsKey(evt.getSwarmId())) {
+                            throw new IllegalStateException("engagedConnections.containsKey(evt.getSwarmId())");
+                        }
+
+
+                        // Connection refused...
+                        // TODO: Reconnect ?
+                        pendingConnections.remove(evt.getSwarmId());
+
+
                     case Connected:
                         if (!pendingConnections.containsKey(evt.getSwarmId())) {
                             throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmId())");
@@ -186,18 +213,23 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                         engagedConnections.remove(evt.getSwarmId());
 
                         // Add to removed neighbours
+                        acknowledgeNeighboursMessage.getAddedOutboundNeighbours().remove(evt.getSwarmId().getUuid());
                         acknowledgeNeighboursMessage.getRemovedOutboundNeighbours().add(evt.getSwarmId().getUuid());
                         break;
                 }
                 break;
             case Inbound:
                 switch (evt.getType()) {
+                    case ConnectionRefused:
+
+                        // TODO: What could this mean ? Maybe that WE refused a connection ?
                     case Connected:
                         // Add to added neighbours
                         acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmId().getUuid());
                         break;
                     case Disconnected:
                         // Add to removed neighbours
+                        acknowledgeNeighboursMessage.getAddedInboundNeighbours().remove(evt.getSwarmId().getUuid());
                         acknowledgeNeighboursMessage.getRemovedInboundNeighbours().add(evt.getSwarmId().getUuid());
                         break;
                 }

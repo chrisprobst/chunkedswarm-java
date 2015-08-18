@@ -16,7 +16,7 @@ public final class NeighbourConnectionEvent {
     }
 
     public enum Type {
-        Connected, Disconnected
+        ConnectionRefused, Connected, Disconnected
     }
 
     private final SwarmId swarmId;
