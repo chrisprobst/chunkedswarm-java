@@ -51,7 +51,7 @@ public final class SwarmIdRegistrationAcknowledgementEvent implements Serializab
 
     @Override
     public String toString() {
-        return "SwarmIdRegistrationReplyEvent{" +
+        return "SwarmIdRegistrationAcknowledgementEvent{" +
                "channel=" + channel +
                ", swarmId=" + swarmId +
                '}';

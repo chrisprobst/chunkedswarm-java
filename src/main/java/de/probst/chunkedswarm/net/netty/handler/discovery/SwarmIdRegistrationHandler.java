@@ -29,6 +29,11 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * Handler receives from all other channels:
  * - SwarmIdRegisteredAcknowledgementEvent
+ * <p>
+ * Handler listens to:
+ * - SwarmIdRegistrationEvent
+ * - SwarmIdRegistrationAcknowledgementEvent
+ * - UpdateNeighboursEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15

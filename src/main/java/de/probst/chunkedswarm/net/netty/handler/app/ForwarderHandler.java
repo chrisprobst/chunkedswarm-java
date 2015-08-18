@@ -13,4 +13,12 @@ public class ForwarderHandler extends ChannelHandlerAdapter {
         System.out.println(cause);
         ctx.close();
     }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if(msg instanceof String) {
+            System.out.println("Received push: " + msg);
+        }
+        super.channelRead(ctx, msg);
+    }
 }

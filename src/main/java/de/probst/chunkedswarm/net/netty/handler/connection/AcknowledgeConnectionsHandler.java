@@ -15,6 +15,9 @@ import java.util.Set;
 /**
  * Handler sends to parent channel:
  * - AcknowledgedNeighboursEvent
+ * <p>
+ * Handler listens to:
+ * - SwarmIdAcquisitionEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15

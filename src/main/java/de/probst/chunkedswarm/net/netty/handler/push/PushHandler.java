@@ -1,22 +1,31 @@
 package de.probst.chunkedswarm.net.netty.handler.push;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
+import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
 import de.probst.chunkedswarm.util.Graph;
 import de.probst.chunkedswarm.util.NodeGroup;
 import de.probst.chunkedswarm.util.NodeGroups;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelMatcher;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
+ * Handler sends to owner channel:
+ * - PushEvent
+ *
  * @author Christopher Probst <christopher.probst@hhu.de>
- * @version 1.0, 02.06.15
+ * @version 1.0, 18.08.15
  */
 public final class PushHandler extends ChannelHandlerAdapter {
+
+    public static final long PUSH_INTERVAL_MS = 5000;
 
     // All channels
     private final ChannelGroup allChannels;
@@ -26,6 +35,17 @@ public final class PushHandler extends ChannelHandlerAdapter {
 
     // Used to store all incoming events
     private final Map<String, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
+
+    // The channel context
+    private ChannelHandlerContext ctx;
+
+    private void firePush() {
+        ctx.pipeline().fireUserEventTriggered(new PushEvent());
+    }
+
+    private void scheduleFirePush() {
+        ctx.executor().schedule(this::firePush, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    }
 
     private NodeGroups<String> computeMeshes() {
         // Create graphs to compute the meshes
@@ -66,6 +86,14 @@ public final class PushHandler extends ChannelHandlerAdapter {
         return outboundGraph.findMeshes(masterUuid, inboundGraph);
     }
 
+    private ChannelMatcher nodeGroupToChannelMatcher(NodeGroup<String> nodeGroup) {
+        return nodeGroup.getNodes()
+                        .stream()
+                        .map(acknowledgedNeighbours::get)
+                        .map(AcknowledgedNeighboursEvent::getChannel)
+                        .collect(Collectors.toSet())::contains;
+    }
+
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
         switch (evt.getType()) {
             case Update:
@@ -75,10 +103,29 @@ public final class PushHandler extends ChannelHandlerAdapter {
                 acknowledgedNeighbours.remove(evt.getLocalSwarmId().getUuid());
                 break;
         }
+    }
 
+    private void handlePushEvent(PushEvent evt) {
+        push();
+        scheduleFirePush();
+    }
+
+    int i = 0;
+
+    private void push() {
         NodeGroups<String> meshes = computeMeshes();
         if (!meshes.getGroups().isEmpty()) {
-            System.out.println("Node group size: " + meshes.getGroups().get(0).getNodes().size());
+            NodeGroup<String> largestGroup = meshes.getGroups().get(0);
+            System.out.println("Pushing to node group of size: " + largestGroup.getNodes().size());
+            allChannels.writeAndFlush("Simulated push event no." + i++, nodeGroupToChannelMatcher(largestGroup))
+                       .addListener(fut -> {
+                           if (fut.isSuccess()) {
+                               System.out.println("Successful push!");
+                           } else {
+                               System.out.println("Failed push!");
+                           }
+                       });
+
         } else {
             System.out.println("Node group empty");
         }
@@ -92,9 +139,18 @@ public final class PushHandler extends ChannelHandlerAdapter {
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        this.ctx = ctx;
+        scheduleFirePush();
+        super.channelActive(ctx);
+    }
+
+    @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof AcknowledgedNeighboursEvent) {
             handleAcknowledgedNeighboursEvent((AcknowledgedNeighboursEvent) evt);
+        } else if (evt instanceof PushEvent) {
+            handlePushEvent((PushEvent) evt);
         }
 
         super.userEventTriggered(ctx, evt);

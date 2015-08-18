@@ -31,6 +31,12 @@ import java.util.concurrent.TimeUnit;
  * Handler sends to owner channel:
  * - NeighbourConnectionEvent
  * - AcknowledgeNeighboursEvent
+ * <p>
+ * Handler listens to:
+ * - AcknowledgeNeighboursEvent
+ * - NeighbourConnectionEvent
+ * - SwarmIdCollectionEvent
+ * - SwarmIdAcquisitionEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
