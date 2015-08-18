@@ -30,19 +30,25 @@ public class Main {
                                              new InetSocketAddress("localhost", 1337)));
             }
 
+            Runnable kill10 = () -> {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        forwarders.remove(0).close();
+                        Thread.sleep(100);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
             System.in.read();
-
-            forwarders.get(1).close();
+            kill10.run();
 
             System.in.read();
+            kill10.run();
 
-            Thread.sleep(5000);
-//
-            for (int i = 0; i < 40; i++) {
-
-                forwarders.get(i).close();
-                Thread.sleep(100);
-            }
+            System.in.read();
+            kill10.run();
 
             System.in.read();
 

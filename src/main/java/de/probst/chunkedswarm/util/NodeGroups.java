@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.net.netty.handler.graph;
+package de.probst.chunkedswarm.util;
 
 import java.util.ArrayList;
 import java.util.List;

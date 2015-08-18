@@ -1,6 +1,9 @@
-package de.probst.chunkedswarm.net.netty.handler.graph;
+package de.probst.chunkedswarm.net.netty.handler.push;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
+import de.probst.chunkedswarm.util.Graph;
+import de.probst.chunkedswarm.util.NodeGroup;
+import de.probst.chunkedswarm.util.NodeGroups;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
@@ -13,7 +16,7 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 02.06.15
  */
-public final class GraphHandler extends ChannelHandlerAdapter {
+public final class PushHandler extends ChannelHandlerAdapter {
 
     // All channels
     private final ChannelGroup allChannels;
@@ -81,7 +84,7 @@ public final class GraphHandler extends ChannelHandlerAdapter {
         }
     }
 
-    public GraphHandler(ChannelGroup allChannels, String masterUuid) {
+    public PushHandler(ChannelGroup allChannels, String masterUuid) {
         Objects.requireNonNull(allChannels);
         Objects.requireNonNull(masterUuid);
         this.allChannels = allChannels;

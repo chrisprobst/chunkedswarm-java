@@ -4,8 +4,8 @@ import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdRegistrationHandler;
-import de.probst.chunkedswarm.net.netty.handler.graph.GraphHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
+import de.probst.chunkedswarm.net.netty.handler.push.PushHandler;
 import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -51,8 +51,8 @@ public final class Distributor implements Closeable {
                            @Override
                            protected void initChannel(ServerChannel ch) throws Exception {
 
-                               // The server channel handles graph computation
-                               ch.pipeline().addLast(new GraphHandler(allChannels, masterUuid));
+                               // The parent channel is used for pushing data
+                               ch.pipeline().addLast(new PushHandler(allChannels, masterUuid));
                            }
                        })
                        .childOption(ChannelOption.TCP_NODELAY, true)
