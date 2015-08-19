@@ -54,7 +54,7 @@ public final class Forwarder implements Closeable {
                            @Override
                            protected void initChannel(Channel ch) throws Exception {
                                // Codec
-                               ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
+                               ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(5 * 1024 * 1024, 0, 4, 0, 4));
                                ch.pipeline().addLast(new LengthFieldPrepender(4));
                                ch.pipeline().addLast(new SimpleCodec());
 
@@ -92,7 +92,7 @@ public final class Forwarder implements Closeable {
                      protected void initChannel(Channel ch) throws Exception {
 
                          // Codec
-                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
+                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(10 * 1024 * 1024, 0, 4, 0, 4));
                          ch.pipeline().addLast(new LengthFieldPrepender(4));
                          ch.pipeline().addLast(new SimpleCodec());
 

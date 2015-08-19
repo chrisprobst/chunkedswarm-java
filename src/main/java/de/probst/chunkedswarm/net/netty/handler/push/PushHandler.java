@@ -5,9 +5,11 @@ import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
 import de.probst.chunkedswarm.util.Graph;
 import de.probst.chunkedswarm.util.NodeGroup;
 import de.probst.chunkedswarm.util.NodeGroups;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.ChannelMatcher;
 
 import java.util.HashMap;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Handler sends to owner channel:
@@ -111,23 +114,40 @@ public final class PushHandler extends ChannelHandlerAdapter {
     }
 
     int i = 0;
+    volatile ChannelGroupFuture next;
 
     private void push() {
+
+
+        if (next != null) {
+            System.out.println("Pusher: Skipping...");
+            return;
+        }
+
+        ByteBuf buf = ctx.alloc().buffer(0xFFFF * 4 * 5);
+        for (int j = 0; j < 0xFFFF * 5; j++) {
+            buf.writeInt((int) (Math.random() * 10000));
+        }
+        buf.setInt(0, i++);
+        int c = buf.readableBytes();
         NodeGroups<String> meshes = computeMeshes();
         if (!meshes.getGroups().isEmpty()) {
             NodeGroup<String> largestGroup = meshes.getGroups().get(0);
-            System.out.println("Pushing to node group of size: " + largestGroup.getNodes().size());
-            allChannels.writeAndFlush("Simulated push event no." + i++, nodeGroupToChannelMatcher(largestGroup))
-                       .addListener(fut -> {
-                           if (fut.isSuccess()) {
-                               System.out.println("Successful push!");
-                           } else {
-                               System.out.println("Failed push!");
-                           }
-                       });
+            System.out.println("Pusher: Pushing to node group of size: " + largestGroup.getNodes().size());
+            (next = allChannels.writeAndFlush(buf, nodeGroupToChannelMatcher(largestGroup)))
+                    .addListener(fut -> {
+                        ChannelGroupFuture groupFut = (ChannelGroupFuture) fut;
+                        long count = StreamSupport.stream(groupFut.spliterator(), false).count();
+                        long failed = !groupFut.isSuccess() ? StreamSupport.stream(groupFut.cause().spliterator(),
+                                                                                   false).count() : 0;
+                        String rate = (count - failed) + "/" + count;
+
+                        System.out.println("Pusher: Rate: " + rate + " Size:" + (c * count / 1024.0 / 1024.0));
+                        next = null;
+                    });
 
         } else {
-            System.out.println("Node group empty");
+            System.out.println("Pusher: Node group empty");
         }
     }
 

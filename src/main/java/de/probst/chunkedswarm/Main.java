@@ -24,33 +24,37 @@ public class Main {
             Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
 
             List<Forwarder> forwarders = new ArrayList<>(4);
-            for (int i = 0; i < 40; i++) {
-                forwarders.add(new Forwarder(eventLoopGroup,
-                                             new InetSocketAddress(20000 + i),
-                                             new InetSocketAddress("localhost", 1337)));
+            for (int i = 0; i < 20; i++) {
+                int k = i;
+                Forwarder f = new Forwarder(eventLoopGroup,
+                                            new InetSocketAddress(20000 + i),
+                                            new InetSocketAddress("kr0e.no-ip.info", 1337));
+                f.getInitFuture().addListener(fut -> {
+                    if (!fut.isSuccess()) {
+                        System.out.println("Peer " + k + " connection result: " + fut.cause());
+                    }
+                });
+                forwarders.add(f);
             }
 
             Runnable kill10 = () -> {
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < 2; i++) {
                     try {
                         forwarders.remove(0).close();
-                        Thread.sleep(50);
+                        Thread.sleep(73);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
             };
 
-            System.in.read();
-            kill10.run();
+            while (!forwarders.isEmpty()) {
 
-            System.in.read();
-            kill10.run();
+                System.in.read();
+                kill10.run();
+            }
 
-            System.in.read();
-            kill10.run();
 
-            System.in.read();
 
             try {
                 distributor.close();

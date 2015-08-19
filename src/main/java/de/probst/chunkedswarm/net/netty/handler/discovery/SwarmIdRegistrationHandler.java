@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SwarmIdRegistrationHandler extends ChannelHandlerAdapter {
 
-    public static final long UPDATE_INTERVAL_MS = 1000;
+    public static final long UPDATE_INTERVAL_MS = 500;
 
     // The other, which use the same swarm id manager
     private final ChannelGroup channels;
