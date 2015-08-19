@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  */
 public final class PushHandler extends ChannelHandlerAdapter {
 
-    public static final long PUSH_INTERVAL_MS = 5000;
+    public static final long PUSH_INTERVAL_MS = 1000;
 
     // All channels
     private final ChannelGroup allChannels;

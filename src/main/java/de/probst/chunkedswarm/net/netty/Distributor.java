@@ -6,6 +6,7 @@ import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnection
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdRegistrationHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.net.netty.handler.push.PushHandler;
+import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
 import de.probst.chunkedswarm.util.SwarmIdManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -17,7 +18,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
@@ -98,7 +98,7 @@ public final class Distributor implements Closeable {
         swarmIdManager = new SwarmIdManager();
         this.eventLoopGroup = eventLoopGroup;
         this.socketAddress = socketAddress;
-        allChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        allChannels = new CloseableChannelGroup(eventLoopGroup.next());
 
         // Create master uuid and blacklist this uuid
         swarmIdManager.blacklistUuid(masterUuid = swarmIdManager.newRandomUuid());

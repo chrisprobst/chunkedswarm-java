@@ -6,6 +6,7 @@ import de.probst.chunkedswarm.net.netty.handler.connection.CollectorConnectionHa
 import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdCollectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
+import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -133,7 +134,7 @@ public final class Forwarder implements Closeable {
         this.collectorAcceptorAddress = collectorAcceptorAddress;
         collectorChannels = new DefaultChannelGroup(eventLoopGroup.next());
         engagedForwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
-        allChannels = new DefaultChannelGroup(eventLoopGroup.next());
+        allChannels = new CloseableChannelGroup(eventLoopGroup.next());
 
         // *********************************************
         // **************** Initialize *****************

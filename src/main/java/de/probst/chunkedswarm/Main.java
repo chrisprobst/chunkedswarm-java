@@ -34,7 +34,7 @@ public class Main {
                 for (int i = 0; i < 10; i++) {
                     try {
                         forwarders.remove(0).close();
-                        Thread.sleep(1000);
+                        Thread.sleep(50);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

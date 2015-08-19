@@ -16,9 +16,9 @@ public class ForwarderHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if(msg instanceof String) {
-            System.out.println("Received push: " + msg);
-        }
+//        if(msg instanceof String) {
+//            System.out.println("Received push: " + msg);
+//        }
         super.channelRead(ctx, msg);
     }
 }

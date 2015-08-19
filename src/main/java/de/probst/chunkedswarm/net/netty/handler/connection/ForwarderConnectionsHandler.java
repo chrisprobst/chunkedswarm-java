@@ -190,7 +190,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                         // TODO: Reconnect ?
                         pendingConnections.remove(evt.getSwarmId());
 
-
+                        break;
                     case Connected:
                         if (!pendingConnections.containsKey(evt.getSwarmId())) {
                             throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmId())");
@@ -229,6 +229,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                     case ConnectionRefused:
 
                         // TODO: What could this mean ? Maybe that WE refused a connection ?
+                        break;
                     case Connected:
                         // Add to added neighbours
                         acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmId().getUuid());
