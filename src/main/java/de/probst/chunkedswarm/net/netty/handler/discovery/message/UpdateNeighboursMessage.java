@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.message;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -13,14 +13,14 @@ import java.util.Set;
  */
 public final class UpdateNeighboursMessage implements Serializable {
 
-    private final Set<SwarmId> addNeighbours;
-    private final Set<SwarmId> removeNeighbours;
+    private final Set<SwarmID> addNeighbours;
+    private final Set<SwarmID> removeNeighbours;
 
     public UpdateNeighboursMessage() {
         this(new HashSet<>(), new HashSet<>());
     }
 
-    public UpdateNeighboursMessage(Set<SwarmId> addNeighbours, Set<SwarmId> removeNeighbours) {
+    public UpdateNeighboursMessage(Set<SwarmID> addNeighbours, Set<SwarmID> removeNeighbours) {
         Objects.requireNonNull(addNeighbours);
         Objects.requireNonNull(removeNeighbours);
         this.addNeighbours = addNeighbours;
@@ -31,11 +31,11 @@ public final class UpdateNeighboursMessage implements Serializable {
         return addNeighbours.isEmpty() && removeNeighbours.isEmpty();
     }
 
-    public Set<SwarmId> getAddNeighbours() {
+    public Set<SwarmID> getAddNeighbours() {
         return addNeighbours;
     }
 
-    public Set<SwarmId> getRemoveNeighbours() {
+    public Set<SwarmID> getRemoveNeighbours() {
         return removeNeighbours;
     }
 

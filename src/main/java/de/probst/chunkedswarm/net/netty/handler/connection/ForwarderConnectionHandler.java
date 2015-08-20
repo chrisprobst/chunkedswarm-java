@@ -1,7 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.connection;
 
-import de.probst.chunkedswarm.net.netty.handler.connection.message.SetForwarderSwarmIdMessage;
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.net.netty.handler.connection.message.SetForwarderSwarmIDMessage;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,17 +14,17 @@ import java.util.Objects;
  */
 public final class ForwarderConnectionHandler extends ChannelHandlerAdapter {
 
-    private final SwarmId localSwarmId;
+    private final SwarmID localSwarmID;
 
-    public ForwarderConnectionHandler(SwarmId localSwarmId) {
-        Objects.requireNonNull(localSwarmId);
-        this.localSwarmId = localSwarmId;
+    public ForwarderConnectionHandler(SwarmID localSwarmID) {
+        Objects.requireNonNull(localSwarmID);
+        this.localSwarmID = localSwarmID;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         // Send local swarm id to remote
-        ctx.writeAndFlush(new SetForwarderSwarmIdMessage(localSwarmId))
+        ctx.writeAndFlush(new SetForwarderSwarmIDMessage(localSwarmID))
            .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
         super.channelActive(ctx);
     }

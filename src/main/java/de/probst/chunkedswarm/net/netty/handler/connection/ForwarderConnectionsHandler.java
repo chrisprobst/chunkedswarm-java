@@ -4,9 +4,9 @@ import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgeNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.NeighbourConnectionEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdCollectionEvent;
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDAcquisitionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDCollectionEvent;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -35,8 +35,8 @@ import java.util.concurrent.TimeUnit;
  * Handler listens to:
  * - AcknowledgeNeighboursEvent
  * - NeighbourConnectionEvent
- * - SwarmIdCollectionEvent
- * - SwarmIdAcquisitionEvent
+ * - SwarmIDCollectionEvent
+ * - SwarmIDAcquisitionEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
@@ -58,10 +58,10 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     private final Bootstrap bootstrap = new Bootstrap();
 
     // Here we track all engaged connections
-    private final Map<SwarmId, Channel> engagedConnections = new HashMap<>();
+    private final Map<SwarmID, Channel> engagedConnections = new HashMap<>();
 
     // Here we track all pending connections
-    private final Map<SwarmId, ChannelFuture> pendingConnections = new HashMap<>();
+    private final Map<SwarmID, ChannelFuture> pendingConnections = new HashMap<>();
 
     // The channel handler context
     private ChannelHandlerContext ctx;
@@ -80,32 +80,32 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         ctx.executor().schedule(this::fireAcknowledgeNeighbours, ACKNOWLEDGE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 
-    private void fireChannelConnectionRefused(SwarmId swarmId, Channel channel) {
+    private void fireChannelConnectionRefused(SwarmID swarmID, Channel channel) {
         ctx.pipeline()
-           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
+           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmID,
                                                                 channel,
                                                                 NeighbourConnectionEvent.Direction.Outbound,
                                                                 NeighbourConnectionEvent.Type.ConnectionRefused));
     }
 
 
-    private void fireChannelConnected(SwarmId swarmId, Channel channel) {
+    private void fireChannelConnected(SwarmID swarmID, Channel channel) {
         ctx.pipeline()
-           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
+           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmID,
                                                                 channel,
                                                                 NeighbourConnectionEvent.Direction.Outbound,
                                                                 NeighbourConnectionEvent.Type.Connected));
     }
 
-    private void fireChannelDisconnected(SwarmId swarmId, Channel channel) {
+    private void fireChannelDisconnected(SwarmID swarmID, Channel channel) {
         ctx.pipeline()
-           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmId,
+           .fireUserEventTriggered(new NeighbourConnectionEvent(swarmID,
                                                                 channel,
                                                                 NeighbourConnectionEvent.Direction.Outbound,
                                                                 NeighbourConnectionEvent.Type.Disconnected));
     }
 
-    private void initBootstrap(SwarmId localSwarmId) {
+    private void initBootstrap(SwarmID localSwarmID) {
         bootstrap.group(eventLoopGroup)
                  .channel(NioSocketChannel.class)
                  .option(ChannelOption.TCP_NODELAY, true)
@@ -119,25 +119,25 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                          ch.pipeline().addLast(new SimpleCodec());
 
                          // The forwarder connection handler
-                         ch.pipeline().addLast(new ForwarderConnectionHandler(localSwarmId));
+                         ch.pipeline().addLast(new ForwarderConnectionHandler(localSwarmID));
                      }
                  });
     }
 
-    private void connectBySwarmId(SwarmId swarmId) {
+    private void connectBySwarmID(SwarmID swarmID) {
         // Do not connect to the same swarm id twice
-        if (engagedConnections.containsKey(swarmId) || pendingConnections.containsKey(swarmId)) {
+        if (engagedConnections.containsKey(swarmID) || pendingConnections.containsKey(swarmID)) {
             return;
         }
 
         // Try to engage connections
-        ChannelFuture connectFuture = bootstrap.connect(swarmId.getAddress());
+        ChannelFuture connectFuture = bootstrap.connect(swarmID.getAddress());
 
         // Get channel
         Channel channel = connectFuture.channel();
 
         // Remember the pending connection attempt
-        pendingConnections.put(swarmId, connectFuture);
+        pendingConnections.put(swarmID, connectFuture);
 
         // Add to channel group
         channels.add(connectFuture.channel());
@@ -146,31 +146,31 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         connectFuture.addListener(fut -> {
             if (fut.isSuccess()) {
                 // Tell channel that outbound connection is established
-                fireChannelConnected(swarmId, channel);
+                fireChannelConnected(swarmID, channel);
 
                 // Look for channel close event
-                channel.closeFuture().addListener(fut2 -> fireChannelDisconnected(swarmId, channel));
+                channel.closeFuture().addListener(fut2 -> fireChannelDisconnected(swarmID, channel));
             } else {
                 // Tell channel that outbound connection was refused
-                fireChannelConnectionRefused(swarmId, channel);
+                fireChannelConnectionRefused(swarmID, channel);
             }
 
             // Channel will be closed, if connecting did not succeed!
         });
     }
 
-    private void disconnectBySwarmId(SwarmId swarmId) {
-        if (engagedConnections.containsKey(swarmId)) {
-            engagedConnections.get(swarmId).close();
-        } else if (pendingConnections.containsKey(swarmId)) {
-            pendingConnections.get(swarmId).channel().close();
+    private void disconnectBySwarmID(SwarmID swarmID) {
+        if (engagedConnections.containsKey(swarmID)) {
+            engagedConnections.get(swarmID).close();
+        } else if (pendingConnections.containsKey(swarmID)) {
+            pendingConnections.get(swarmID).channel().close();
         }
     }
 
-    private void handleSwarmIdCollectionEvent(SwarmIdCollectionEvent evt) {
+    private void handleSwarmIDCollectionEvent(SwarmIDCollectionEvent evt) {
         // Connect & disconnect from new/missing swarm ids
-        evt.getUpdateNeighboursMessage().getAddNeighbours().forEach(this::connectBySwarmId);
-        evt.getUpdateNeighboursMessage().getRemoveNeighbours().forEach(this::disconnectBySwarmId);
+        evt.getUpdateNeighboursMessage().getAddNeighbours().forEach(this::connectBySwarmID);
+        evt.getUpdateNeighboursMessage().getRemoveNeighbours().forEach(this::disconnectBySwarmID);
     }
 
     private void handleConnectionEvent(NeighbourConnectionEvent evt) {
@@ -178,49 +178,49 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
             case Outbound:
                 switch (evt.getType()) {
                     case ConnectionRefused:
-                        if (!pendingConnections.containsKey(evt.getSwarmId())) {
-                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmId())");
+                        if (!pendingConnections.containsKey(evt.getSwarmID())) {
+                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmID())");
                         }
-                        if (engagedConnections.containsKey(evt.getSwarmId())) {
-                            throw new IllegalStateException("engagedConnections.containsKey(evt.getSwarmId())");
+                        if (engagedConnections.containsKey(evt.getSwarmID())) {
+                            throw new IllegalStateException("engagedConnections.containsKey(evt.getSwarmID())");
                         }
 
 
                         // Connection refused...
                         // TODO: Reconnect ?
-                        pendingConnections.remove(evt.getSwarmId());
+                        pendingConnections.remove(evt.getSwarmID());
 
                         break;
                     case Connected:
-                        if (!pendingConnections.containsKey(evt.getSwarmId())) {
-                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmId())");
+                        if (!pendingConnections.containsKey(evt.getSwarmID())) {
+                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmID())");
                         }
-                        if (engagedConnections.containsKey(evt.getSwarmId())) {
-                            throw new IllegalStateException("engagedConnections.containsKey(evt.getSwarmId())");
+                        if (engagedConnections.containsKey(evt.getSwarmID())) {
+                            throw new IllegalStateException("engagedConnections.containsKey(evt.getSwarmID())");
                         }
 
                         // Connection complete, move to engaged connections
-                        pendingConnections.remove(evt.getSwarmId());
-                        engagedConnections.put(evt.getSwarmId(), evt.getChannel());
+                        pendingConnections.remove(evt.getSwarmID());
+                        engagedConnections.put(evt.getSwarmID(), evt.getChannel());
                         engagedForwarderChannels.add(evt.getChannel());
 
                         // Add to added neighbours
-                        acknowledgeNeighboursMessage.getAddedOutboundNeighbours().add(evt.getSwarmId().getUuid());
+                        acknowledgeNeighboursMessage.getAddedOutboundNeighbours().add(evt.getSwarmID().getUUID());
                         break;
                     case Disconnected:
-                        if (!pendingConnections.containsKey(evt.getSwarmId()) &&
-                            !engagedConnections.containsKey(evt.getSwarmId())) {
-                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmId()) && " +
-                                                            "!engagedConnections.containsKey(evt.getSwarmId())");
+                        if (!pendingConnections.containsKey(evt.getSwarmID()) &&
+                            !engagedConnections.containsKey(evt.getSwarmID())) {
+                            throw new IllegalStateException("!pendingConnections.containsKey(evt.getSwarmID()) && " +
+                                                            "!engagedConnections.containsKey(evt.getSwarmID())");
                         }
 
                         // Remove from both maps
-                        pendingConnections.remove(evt.getSwarmId());
-                        engagedConnections.remove(evt.getSwarmId());
+                        pendingConnections.remove(evt.getSwarmID());
+                        engagedConnections.remove(evt.getSwarmID());
 
                         // Add to removed neighbours
-                        acknowledgeNeighboursMessage.getAddedOutboundNeighbours().remove(evt.getSwarmId().getUuid());
-                        acknowledgeNeighboursMessage.getRemovedOutboundNeighbours().add(evt.getSwarmId().getUuid());
+                        acknowledgeNeighboursMessage.getAddedOutboundNeighbours().remove(evt.getSwarmID().getUUID());
+                        acknowledgeNeighboursMessage.getRemovedOutboundNeighbours().add(evt.getSwarmID().getUUID());
                         break;
                 }
                 break;
@@ -233,20 +233,20 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                     case Connected:
                         // TODO: Verify SwarmID !!
                         // Add to added neighbours
-                        acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmId().getUuid());
+                        acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmID().getUUID());
                         break;
                     case Disconnected:
                         // Add to removed neighbours
-                        acknowledgeNeighboursMessage.getAddedInboundNeighbours().remove(evt.getSwarmId().getUuid());
-                        acknowledgeNeighboursMessage.getRemovedInboundNeighbours().add(evt.getSwarmId().getUuid());
+                        acknowledgeNeighboursMessage.getAddedInboundNeighbours().remove(evt.getSwarmID().getUUID());
+                        acknowledgeNeighboursMessage.getRemovedInboundNeighbours().add(evt.getSwarmID().getUUID());
                         break;
                 }
         }
     }
 
-    private void handleSwarmIdAcquisitionEvent(SwarmIdAcquisitionEvent evt) {
+    private void handleSwarmIDAcquisitionEvent(SwarmIDAcquisitionEvent evt) {
         // Initialize bootstrap with local swarm if
-        initBootstrap(evt.getSwarmId());
+        initBootstrap(evt.getSwarmID());
     }
 
     private void handleAcknowledgeNeighboursEvent(AcknowledgeNeighboursEvent evt) {
@@ -299,12 +299,12 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof SwarmIdCollectionEvent) {
-            handleSwarmIdCollectionEvent((SwarmIdCollectionEvent) evt);
+        if (evt instanceof SwarmIDCollectionEvent) {
+            handleSwarmIDCollectionEvent((SwarmIDCollectionEvent) evt);
         } else if (evt instanceof NeighbourConnectionEvent) {
             handleConnectionEvent((NeighbourConnectionEvent) evt);
-        } else if (evt instanceof SwarmIdAcquisitionEvent) {
-            handleSwarmIdAcquisitionEvent((SwarmIdAcquisitionEvent) evt);
+        } else if (evt instanceof SwarmIDAcquisitionEvent) {
+            handleSwarmIDAcquisitionEvent((SwarmIDAcquisitionEvent) evt);
         } else if (evt instanceof AcknowledgeNeighboursEvent) {
             handleAcknowledgeNeighboursEvent((AcknowledgeNeighboursEvent) evt);
         }

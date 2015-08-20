@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.event;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
 
 import java.io.Serializable;
@@ -10,24 +10,24 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 23.05.15
  */
-public final class SwarmIdRegistrationAcknowledgementEvent implements Serializable {
+public final class SwarmIDRegistrationAcknowledgementEvent implements Serializable {
 
     private final Channel channel;
-    private final SwarmId swarmId;
+    private final SwarmID swarmID;
 
-    public SwarmIdRegistrationAcknowledgementEvent(Channel channel, SwarmId swarmId) {
+    public SwarmIDRegistrationAcknowledgementEvent(Channel channel, SwarmID swarmID) {
         Objects.requireNonNull(channel);
-        Objects.requireNonNull(swarmId);
+        Objects.requireNonNull(swarmID);
         this.channel = channel;
-        this.swarmId = swarmId;
+        this.swarmID = swarmID;
     }
 
     public Channel getChannel() {
         return channel;
     }
 
-    public SwarmId getSwarmId() {
-        return swarmId;
+    public SwarmID getSwarmID() {
+        return swarmID;
     }
 
     @Override
@@ -35,25 +35,25 @@ public final class SwarmIdRegistrationAcknowledgementEvent implements Serializab
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdRegistrationAcknowledgementEvent that = (SwarmIdRegistrationAcknowledgementEvent) o;
+        SwarmIDRegistrationAcknowledgementEvent that = (SwarmIDRegistrationAcknowledgementEvent) o;
 
         if (!channel.equals(that.channel)) return false;
-        return swarmId.equals(that.swarmId);
+        return swarmID.equals(that.swarmID);
 
     }
 
     @Override
     public int hashCode() {
         int result = channel.hashCode();
-        result = 31 * result + swarmId.hashCode();
+        result = 31 * result + swarmID.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return "SwarmIdRegistrationAcknowledgementEvent{" +
+        return "SwarmIDRegistrationAcknowledgementEvent{" +
                "channel=" + channel +
-               ", swarmId=" + swarmId +
+               ", swarmID=" + swarmID +
                '}';
     }
 }

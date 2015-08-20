@@ -3,11 +3,11 @@ package de.probst.chunkedswarm.net.netty;
 import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
 import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
-import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIdRegistrationHandler;
+import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIDRegistrationHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.net.netty.handler.push.PushHandler;
 import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
-import de.probst.chunkedswarm.util.SwarmIdManager;
+import de.probst.chunkedswarm.util.SwarmIDManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -34,8 +34,8 @@ import java.util.UUID;
  */
 public final class Distributor implements Closeable {
 
-    private final SwarmIdManager swarmIdManager;
-    private final UUID masterUuid;
+    private final SwarmIDManager swarmIDManager;
+    private final UUID masterUUID;
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;
@@ -53,7 +53,7 @@ public final class Distributor implements Closeable {
                            protected void initChannel(ServerChannel ch) throws Exception {
 
                                // The parent channel is used for pushing data
-                               ch.pipeline().addLast(new PushHandler(allChannels, masterUuid));
+                               ch.pipeline().addLast(new PushHandler(allChannels, masterUUID));
                            }
                        })
                        .childOption(ChannelOption.TCP_NODELAY, true)
@@ -69,7 +69,7 @@ public final class Distributor implements Closeable {
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
 
                                // Handle swarm id management
-                               ch.pipeline().addLast(new SwarmIdRegistrationHandler(allChannels, swarmIdManager));
+                               ch.pipeline().addLast(new SwarmIDRegistrationHandler(allChannels, swarmIDManager));
 
                                // Handle connection acknowledgements
                                ch.pipeline().addLast(new AcknowledgeConnectionsHandler());
@@ -96,13 +96,13 @@ public final class Distributor implements Closeable {
         Objects.requireNonNull(socketAddress);
 
         // Init attributes
-        swarmIdManager = new SwarmIdManager();
+        swarmIDManager = new SwarmIDManager();
         this.eventLoopGroup = eventLoopGroup;
         this.socketAddress = socketAddress;
         allChannels = new CloseableChannelGroup(eventLoopGroup.next());
 
         // Create master uuid and blacklist this uuid
-        swarmIdManager.blacklistUuid(masterUuid = swarmIdManager.newRandomUuid());
+        swarmIDManager.blacklistUUID(masterUUID = swarmIDManager.newRandomUUID());
 
         // *********************************************
         // **************** Initialize *****************

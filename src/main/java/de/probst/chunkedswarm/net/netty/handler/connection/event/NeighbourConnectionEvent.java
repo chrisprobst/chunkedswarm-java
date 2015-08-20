@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.connection.event;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
 
 import java.util.Objects;
@@ -19,27 +19,27 @@ public final class NeighbourConnectionEvent {
         ConnectionRefused, Connected, Disconnected
     }
 
-    private final SwarmId swarmId;
+    private final SwarmID swarmID;
     private final Channel channel;
     private final Direction direction;
     private final Type type;
 
-    public NeighbourConnectionEvent(SwarmId swarmId,
+    public NeighbourConnectionEvent(SwarmID swarmID,
                                     Channel channel,
                                     Direction direction,
                                     Type type) {
-        Objects.requireNonNull(swarmId);
+        Objects.requireNonNull(swarmID);
         Objects.requireNonNull(channel);
         Objects.requireNonNull(direction);
         Objects.requireNonNull(type);
-        this.swarmId = swarmId;
+        this.swarmID = swarmID;
         this.channel = channel;
         this.direction = direction;
         this.type = type;
     }
 
-    public SwarmId getSwarmId() {
-        return swarmId;
+    public SwarmID getSwarmID() {
+        return swarmID;
     }
 
     public Channel getChannel() {
@@ -61,7 +61,7 @@ public final class NeighbourConnectionEvent {
 
         NeighbourConnectionEvent that = (NeighbourConnectionEvent) o;
 
-        if (!swarmId.equals(that.swarmId)) return false;
+        if (!swarmID.equals(that.swarmID)) return false;
         if (!channel.equals(that.channel)) return false;
         if (direction != that.direction) return false;
         return type == that.type;
@@ -70,7 +70,7 @@ public final class NeighbourConnectionEvent {
 
     @Override
     public int hashCode() {
-        int result = swarmId.hashCode();
+        int result = swarmID.hashCode();
         result = 31 * result + channel.hashCode();
         result = 31 * result + direction.hashCode();
         result = 31 * result + type.hashCode();
@@ -80,7 +80,7 @@ public final class NeighbourConnectionEvent {
     @Override
     public String toString() {
         return "NeighbourConnectionEvent{" +
-               "swarmId=" + swarmId +
+               "swarmID=" + swarmID +
                ", channel=" + channel +
                ", direction=" + direction +
                ", type=" + type +

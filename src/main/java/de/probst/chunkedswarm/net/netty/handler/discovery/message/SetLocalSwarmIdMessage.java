@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.message;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -9,17 +9,17 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 23.05.15
  */
-public final class SetLocalSwarmIdMessage implements Serializable {
+public final class SetLocalSwarmIDMessage implements Serializable {
 
-    private final SwarmId localSwarmId;
+    private final SwarmID localSwarmID;
 
-    public SetLocalSwarmIdMessage(SwarmId localSwarmId) {
-        Objects.requireNonNull(localSwarmId);
-        this.localSwarmId = localSwarmId;
+    public SetLocalSwarmIDMessage(SwarmID localSwarmID) {
+        Objects.requireNonNull(localSwarmID);
+        this.localSwarmID = localSwarmID;
     }
 
-    public SwarmId getLocalSwarmId() {
-        return localSwarmId;
+    public SwarmID getLocalSwarmID() {
+        return localSwarmID;
     }
 
     @Override
@@ -27,21 +27,21 @@ public final class SetLocalSwarmIdMessage implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SetLocalSwarmIdMessage that = (SetLocalSwarmIdMessage) o;
+        SetLocalSwarmIDMessage that = (SetLocalSwarmIDMessage) o;
 
-        return localSwarmId.equals(that.localSwarmId);
+        return localSwarmID.equals(that.localSwarmID);
 
     }
 
     @Override
     public int hashCode() {
-        return localSwarmId.hashCode();
+        return localSwarmID.hashCode();
     }
 
     @Override
     public String toString() {
-        return "SetLocalSwarmIdMessage{" +
-               "localSwarmId=" + localSwarmId +
+        return "SetLocalSwarmIDMessage{" +
+               "localSwarmID=" + localSwarmID +
                '}';
     }
 }

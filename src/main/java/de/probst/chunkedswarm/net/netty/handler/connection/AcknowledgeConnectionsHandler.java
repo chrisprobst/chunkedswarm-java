@@ -2,8 +2,8 @@ package de.probst.chunkedswarm.net.netty.handler.connection;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDAcquisitionEvent;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -35,7 +35,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     private ChannelHandlerContext ctx;
 
     // The local swarm id
-    private SwarmId localSwarmId;
+    private SwarmID localSwarmID;
 
     // Did we have updated our parent once ?
     private boolean hasUpdatedOnce;
@@ -51,7 +51,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
                                                                       acknowledgedOutboundNeighbours,
                                                                       acknowledgedInboundNeighbours,
                                                                       Optional.of(msg),
-                                                                      localSwarmId,
+                                                                      localSwarmID,
                                                                       ctx.channel()));
 
         hasUpdatedOnce = true;
@@ -72,12 +72,12 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
                                                                       acknowledgedOutboundNeighbours,
                                                                       acknowledgedInboundNeighbours,
                                                                       Optional.empty(),
-                                                                      localSwarmId,
+                                                                      localSwarmID,
                                                                       ctx.channel()));
     }
 
-    private void handleSwarmIdAcquisitionEvent(SwarmIdAcquisitionEvent evt) {
-        localSwarmId = evt.getSwarmId();
+    private void handleSwarmIDAcquisitionEvent(SwarmIDAcquisitionEvent evt) {
+        localSwarmID = evt.getSwarmID();
     }
 
     private void acknowledgeNeighbours(AcknowledgeNeighboursMessage msg) {
@@ -90,8 +90,8 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof SwarmIdAcquisitionEvent) {
-            handleSwarmIdAcquisitionEvent((SwarmIdAcquisitionEvent) evt);
+        if (evt instanceof SwarmIDAcquisitionEvent) {
+            handleSwarmIDAcquisitionEvent((SwarmIDAcquisitionEvent) evt);
         }
 
         super.userEventTriggered(ctx, evt);

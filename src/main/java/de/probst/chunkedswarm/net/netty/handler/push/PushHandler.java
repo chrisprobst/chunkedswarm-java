@@ -34,8 +34,8 @@ public final class PushHandler extends ChannelHandlerAdapter {
     // All channels
     private final ChannelGroup allChannels;
 
-    // The master uuid, so nobody can choose this id
-    private final UUID masterUuid;
+    // The master uuid, so nobody can choose this uuid
+    private final UUID masterUUID;
 
     // Used to store all incoming events
     private final Map<UUID, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
@@ -70,24 +70,24 @@ public final class PushHandler extends ChannelHandlerAdapter {
             inboundNodeGroup.getNodes().addAll(evt.getAcknowledgedInboundNeighbours());
 
             // Of course, each node is connected with the master
-            outboundNodeGroup.getNodes().add(masterUuid);
-            inboundNodeGroup.getNodes().add(masterUuid);
+            outboundNodeGroup.getNodes().add(masterUUID);
+            inboundNodeGroup.getNodes().add(masterUUID);
 
             // The master is connected with this node
-            masterOutboundNodeGroup.getNodes().add(evt.getLocalSwarmId().getUuid());
-            masterInboundNodeGroup.getNodes().add(evt.getLocalSwarmId().getUuid());
+            masterOutboundNodeGroup.getNodes().add(evt.getLocalSwarmID().getUUID());
+            masterInboundNodeGroup.getNodes().add(evt.getLocalSwarmID().getUUID());
 
             // Put node groups into graphs
-            outboundGraph.getNodes().put(evt.getLocalSwarmId().getUuid(), outboundNodeGroup);
-            inboundGraph.getNodes().put(evt.getLocalSwarmId().getUuid(), inboundNodeGroup);
+            outboundGraph.getNodes().put(evt.getLocalSwarmID().getUUID(), outboundNodeGroup);
+            inboundGraph.getNodes().put(evt.getLocalSwarmID().getUUID(), inboundNodeGroup);
         });
 
         // Put the view of the master into the graphs
-        outboundGraph.getNodes().put(masterUuid, masterOutboundNodeGroup);
-        inboundGraph.getNodes().put(masterUuid, masterInboundNodeGroup);
+        outboundGraph.getNodes().put(masterUUID, masterOutboundNodeGroup);
+        inboundGraph.getNodes().put(masterUUID, masterInboundNodeGroup);
 
         // Compute the meshes
-        return outboundGraph.findMeshes(masterUuid, inboundGraph);
+        return outboundGraph.findMeshes(masterUUID, inboundGraph);
     }
 
     private ChannelMatcher nodeGroupToChannelMatcher(NodeGroup<UUID> nodeGroup) {
@@ -101,10 +101,10 @@ public final class PushHandler extends ChannelHandlerAdapter {
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
         switch (evt.getType()) {
             case Update:
-                acknowledgedNeighbours.put(evt.getLocalSwarmId().getUuid(), evt);
+                acknowledgedNeighbours.put(evt.getLocalSwarmID().getUUID(), evt);
                 break;
             case Dispose:
-                acknowledgedNeighbours.remove(evt.getLocalSwarmId().getUuid());
+                acknowledgedNeighbours.remove(evt.getLocalSwarmID().getUUID());
                 break;
         }
     }
@@ -152,11 +152,11 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
     }
 
-    public PushHandler(ChannelGroup allChannels, UUID masterUuid) {
+    public PushHandler(ChannelGroup allChannels, UUID masterUUID) {
         Objects.requireNonNull(allChannels);
-        Objects.requireNonNull(masterUuid);
+        Objects.requireNonNull(masterUUID);
         this.allChannels = allChannels;
-        this.masterUuid = masterUuid;
+        this.masterUUID = masterUUID;
     }
 
     @Override

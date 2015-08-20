@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.connection.message;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -9,17 +9,17 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 23.05.15
  */
-public final class SetForwarderSwarmIdMessage implements Serializable {
+public final class SetForwarderSwarmIDMessage implements Serializable {
 
-    private final SwarmId forwarderSwarmId;
+    private final SwarmID forwarderSwarmID;
 
-    public SetForwarderSwarmIdMessage(SwarmId forwarderSwarmId) {
-        Objects.requireNonNull(forwarderSwarmId);
-        this.forwarderSwarmId = forwarderSwarmId;
+    public SetForwarderSwarmIDMessage(SwarmID forwarderSwarmID) {
+        Objects.requireNonNull(forwarderSwarmID);
+        this.forwarderSwarmID = forwarderSwarmID;
     }
 
-    public SwarmId getForwarderSwarmId() {
-        return forwarderSwarmId;
+    public SwarmID getForwarderSwarmID() {
+        return forwarderSwarmID;
     }
 
     @Override
@@ -27,21 +27,21 @@ public final class SetForwarderSwarmIdMessage implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SetForwarderSwarmIdMessage that = (SetForwarderSwarmIdMessage) o;
+        SetForwarderSwarmIDMessage that = (SetForwarderSwarmIDMessage) o;
 
-        return forwarderSwarmId.equals(that.forwarderSwarmId);
+        return forwarderSwarmID.equals(that.forwarderSwarmID);
 
     }
 
     @Override
     public int hashCode() {
-        return forwarderSwarmId.hashCode();
+        return forwarderSwarmID.hashCode();
     }
 
     @Override
     public String toString() {
-        return "SetForwarderSwarmIdMessage{" +
-               "forwarderSwarmId=" + forwarderSwarmId +
+        return "SetForwarderSwarmIDMessage{" +
+               "forwarderSwarmID=" + forwarderSwarmID +
                '}';
     }
 }

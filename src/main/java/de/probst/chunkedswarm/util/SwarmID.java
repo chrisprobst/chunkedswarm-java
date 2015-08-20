@@ -5,19 +5,19 @@ import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.UUID;
 
-public final class SwarmId implements Serializable {
+public final class SwarmID implements Serializable {
 
     private final UUID uuid;
     private final SocketAddress address;
 
-    public SwarmId(UUID uuid, SocketAddress address) {
+    public SwarmID(UUID uuid, SocketAddress address) {
         Objects.requireNonNull(uuid);
         Objects.requireNonNull(address);
         this.uuid = uuid;
         this.address = address;
     }
 
-    public UUID getUuid() {
+    public UUID getUUID() {
         return uuid;
     }
 
@@ -30,7 +30,7 @@ public final class SwarmId implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmId swarmID = (SwarmId) o;
+        SwarmID swarmID = (SwarmID) o;
 
         if (!uuid.equals(swarmID.uuid)) return false;
         return address.equals(swarmID.address);
@@ -46,7 +46,7 @@ public final class SwarmId implements Serializable {
 
     @Override
     public String toString() {
-        return "SwarmId{" +
+        return "SwarmID{" +
                "uuid=" + uuid +
                ", address=" + address +
                '}';

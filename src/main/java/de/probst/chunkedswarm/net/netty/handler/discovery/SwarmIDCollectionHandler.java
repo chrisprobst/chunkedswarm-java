@@ -1,11 +1,11 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery;
 
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdAcquisitionEvent;
-import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIdCollectionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDAcquisitionEvent;
+import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDCollectionEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetCollectorAddressMessage;
-import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIdMessage;
+import de.probst.chunkedswarm.net.netty.handler.discovery.message.SetLocalSwarmIDMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,52 +17,52 @@ import java.util.Set;
 
 /**
  * Handler sends to owner channel:
- * - SwarmIdCollectionEvent
- * - SwarmIdAcquisitionEvent
+ * - SwarmIDCollectionEvent
+ * - SwarmIDAcquisitionEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
  */
-public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
+public final class SwarmIDCollectionHandler extends ChannelHandlerAdapter {
 
     // The announce address, which is announced to the registration handler
     private final SocketAddress announceAddress;
 
     // All known swarm ids
-    private final Set<SwarmId> knownSwarmIds = new HashSet<>();
+    private final Set<SwarmID> knownSwarmIDs = new HashSet<>();
 
     // The channel handler context
     private ChannelHandlerContext ctx;
 
     // The local swarm id
-    private SwarmId localSwarmId;
+    private SwarmID localSwarmID;
 
-    private void fireSwarmIdsCollected(UpdateNeighboursMessage msg) {
-        ctx.pipeline().fireUserEventTriggered(new SwarmIdCollectionEvent(knownSwarmIds, msg));
+    private void fireSwarmIDsCollected(UpdateNeighboursMessage msg) {
+        ctx.pipeline().fireUserEventTriggered(new SwarmIDCollectionEvent(knownSwarmIDs, msg));
     }
 
-    private void fireSwarmIdAcquired() {
-        ctx.pipeline().fireUserEventTriggered(new SwarmIdAcquisitionEvent(localSwarmId));
+    private void fireSwarmIDAcquired() {
+        ctx.pipeline().fireUserEventTriggered(new SwarmIDAcquisitionEvent(localSwarmID));
     }
 
-    private void setLocalSwarmId(SetLocalSwarmIdMessage msg) {
+    private void setLocalSwarmID(SetLocalSwarmIDMessage msg) {
         // Safe the new swarm id
-        localSwarmId = msg.getLocalSwarmId();
+        localSwarmID = msg.getLocalSwarmID();
 
         // Let handler chain know, that we have acquired our swarm id
-        fireSwarmIdAcquired();
+        fireSwarmIDAcquired();
     }
 
     private void updateNeighbours(UpdateNeighboursMessage msg) {
         // Add and remove neighbours
-        knownSwarmIds.addAll(msg.getAddNeighbours());
-        knownSwarmIds.removeAll(msg.getRemoveNeighbours());
+        knownSwarmIDs.addAll(msg.getAddNeighbours());
+        knownSwarmIDs.removeAll(msg.getRemoveNeighbours());
 
         // Let handler chain know, that we have updated our set of swarm ids0
-        fireSwarmIdsCollected(msg);
+        fireSwarmIDsCollected(msg);
     }
 
-    public SwarmIdCollectionHandler(SocketAddress announceAddress) {
+    public SwarmIDCollectionHandler(SocketAddress announceAddress) {
         Objects.requireNonNull(announceAddress);
         this.announceAddress = announceAddress;
     }
@@ -79,14 +79,14 @@ public final class SwarmIdCollectionHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        boolean hasNotLocalSwarmId = localSwarmId == null;
-        boolean isSetLocalSwarmIdMessage = msg instanceof SetLocalSwarmIdMessage;
+        boolean hasNotLocalSwarmID = localSwarmID == null;
+        boolean isSetLocalSwarmIDMessage = msg instanceof SetLocalSwarmIDMessage;
 
-        if (hasNotLocalSwarmId || isSetLocalSwarmIdMessage) {
-            if (!hasNotLocalSwarmId || !isSetLocalSwarmIdMessage) {
-                throw new IllegalStateException("!hasNotLocalSwarmId || !isSetLocalSwarmIdMessage");
+        if (hasNotLocalSwarmID || isSetLocalSwarmIDMessage) {
+            if (!hasNotLocalSwarmID || !isSetLocalSwarmIDMessage) {
+                throw new IllegalStateException("!hasNotLocalSwarmID || !isSetLocalSwarmIDMessage");
             } else {
-                setLocalSwarmId((SetLocalSwarmIdMessage) msg);
+                setLocalSwarmID((SetLocalSwarmIDMessage) msg);
             }
         } else if (msg instanceof UpdateNeighboursMessage) {
             updateNeighbours((UpdateNeighboursMessage) msg);

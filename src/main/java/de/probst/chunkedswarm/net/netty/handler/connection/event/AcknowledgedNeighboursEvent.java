@@ -1,7 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.connection.event;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
 
 import java.util.HashSet;
@@ -33,7 +33,7 @@ public final class AcknowledgedNeighboursEvent {
     private final Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage;
 
     // The local swarm id
-    private final SwarmId localSwarmId;
+    private final SwarmID localSwarmID;
 
     // The channel
     private final Channel channel;
@@ -42,20 +42,20 @@ public final class AcknowledgedNeighboursEvent {
                                        Set<UUID> acknowledgedOutboundNeighbours,
                                        Set<UUID> acknowledgedInboundNeighbours,
                                        Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage,
-                                       SwarmId localSwarmId,
+                                       SwarmID localSwarmID,
                                        Channel channel) {
         Objects.requireNonNull(type);
         Objects.requireNonNull(acknowledgedOutboundNeighbours);
         Objects.requireNonNull(acknowledgedInboundNeighbours);
         Objects.requireNonNull(acknowledgeNeighboursMessage);
-        Objects.requireNonNull(localSwarmId);
+        Objects.requireNonNull(localSwarmID);
         Objects.requireNonNull(channel);
 
         this.type = type;
         this.acknowledgedOutboundNeighbours = new HashSet<>(acknowledgedOutboundNeighbours);
         this.acknowledgedInboundNeighbours = new HashSet<>(acknowledgedInboundNeighbours);
         this.acknowledgeNeighboursMessage = acknowledgeNeighboursMessage;
-        this.localSwarmId = localSwarmId;
+        this.localSwarmID = localSwarmID;
         this.channel = channel;
     }
 
@@ -75,8 +75,8 @@ public final class AcknowledgedNeighboursEvent {
         return acknowledgeNeighboursMessage;
     }
 
-    public SwarmId getLocalSwarmId() {
-        return localSwarmId;
+    public SwarmID getLocalSwarmID() {
+        return localSwarmID;
     }
 
     public Channel getChannel() {
@@ -94,7 +94,7 @@ public final class AcknowledgedNeighboursEvent {
         if (!acknowledgedOutboundNeighbours.equals(that.acknowledgedOutboundNeighbours)) return false;
         if (!acknowledgedInboundNeighbours.equals(that.acknowledgedInboundNeighbours)) return false;
         if (!acknowledgeNeighboursMessage.equals(that.acknowledgeNeighboursMessage)) return false;
-        if (!localSwarmId.equals(that.localSwarmId)) return false;
+        if (!localSwarmID.equals(that.localSwarmID)) return false;
         return channel.equals(that.channel);
 
     }
@@ -105,7 +105,7 @@ public final class AcknowledgedNeighboursEvent {
         result = 31 * result + acknowledgedOutboundNeighbours.hashCode();
         result = 31 * result + acknowledgedInboundNeighbours.hashCode();
         result = 31 * result + acknowledgeNeighboursMessage.hashCode();
-        result = 31 * result + localSwarmId.hashCode();
+        result = 31 * result + localSwarmID.hashCode();
         result = 31 * result + channel.hashCode();
         return result;
     }
@@ -117,7 +117,7 @@ public final class AcknowledgedNeighboursEvent {
                ", acknowledgedOutboundNeighbours=" + acknowledgedOutboundNeighbours +
                ", acknowledgedInboundNeighbours=" + acknowledgedInboundNeighbours +
                ", acknowledgeNeighboursMessage=" + acknowledgeNeighboursMessage +
-               ", localSwarmId=" + localSwarmId +
+               ", localSwarmID=" + localSwarmID +
                ", channel=" + channel +
                '}';
     }

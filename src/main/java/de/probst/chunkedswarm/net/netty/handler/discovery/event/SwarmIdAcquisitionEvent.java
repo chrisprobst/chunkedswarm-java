@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.event;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 
 import java.util.Objects;
 
@@ -8,17 +8,17 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 30.05.15
  */
-public final class SwarmIdAcquisitionEvent {
+public final class SwarmIDAcquisitionEvent {
 
-    private final SwarmId swarmId;
+    private final SwarmID swarmID;
 
-    public SwarmIdAcquisitionEvent(SwarmId swarmId) {
-        Objects.requireNonNull(swarmId);
-        this.swarmId = swarmId;
+    public SwarmIDAcquisitionEvent(SwarmID swarmID) {
+        Objects.requireNonNull(swarmID);
+        this.swarmID = swarmID;
     }
 
-    public SwarmId getSwarmId() {
-        return swarmId;
+    public SwarmID getSwarmID() {
+        return swarmID;
     }
 
     @Override
@@ -26,20 +26,20 @@ public final class SwarmIdAcquisitionEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdAcquisitionEvent that = (SwarmIdAcquisitionEvent) o;
+        SwarmIDAcquisitionEvent that = (SwarmIDAcquisitionEvent) o;
 
-        return swarmId.equals(that.swarmId);
+        return swarmID.equals(that.swarmID);
     }
 
     @Override
     public int hashCode() {
-        return swarmId.hashCode();
+        return swarmID.hashCode();
     }
 
     @Override
     public String toString() {
-        return "SwarmIdAcquisitionEvent{" +
-               "swarmId=" + swarmId +
+        return "SwarmIDAcquisitionEvent{" +
+               "swarmID=" + swarmID +
                '}';
     }
 }

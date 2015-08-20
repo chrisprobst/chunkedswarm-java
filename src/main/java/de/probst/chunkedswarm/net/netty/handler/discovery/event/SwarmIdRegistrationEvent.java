@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.discovery.event;
 
-import de.probst.chunkedswarm.util.SwarmId;
+import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
 
 import java.io.Serializable;
@@ -10,22 +10,22 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 23.05.15
  */
-public final class SwarmIdRegistrationEvent implements Serializable {
+public final class SwarmIDRegistrationEvent implements Serializable {
 
     public enum Type {
         Registered, Unregistered
     }
 
     private final Channel channel;
-    private final SwarmId swarmId;
+    private final SwarmID swarmID;
     private final Type type;
 
-    public SwarmIdRegistrationEvent(Channel channel, SwarmId swarmId, Type type) {
+    public SwarmIDRegistrationEvent(Channel channel, SwarmID swarmID, Type type) {
         Objects.requireNonNull(channel);
-        Objects.requireNonNull(swarmId);
+        Objects.requireNonNull(swarmID);
         Objects.requireNonNull(type);
         this.channel = channel;
-        this.swarmId = swarmId;
+        this.swarmID = swarmID;
         this.type = type;
     }
 
@@ -33,8 +33,8 @@ public final class SwarmIdRegistrationEvent implements Serializable {
         return channel;
     }
 
-    public SwarmId getSwarmId() {
-        return swarmId;
+    public SwarmID getSwarmID() {
+        return swarmID;
     }
 
     public Type getType() {
@@ -46,10 +46,10 @@ public final class SwarmIdRegistrationEvent implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SwarmIdRegistrationEvent that = (SwarmIdRegistrationEvent) o;
+        SwarmIDRegistrationEvent that = (SwarmIDRegistrationEvent) o;
 
         if (!channel.equals(that.channel)) return false;
-        if (!swarmId.equals(that.swarmId)) return false;
+        if (!swarmID.equals(that.swarmID)) return false;
         return type == that.type;
 
     }
@@ -57,16 +57,16 @@ public final class SwarmIdRegistrationEvent implements Serializable {
     @Override
     public int hashCode() {
         int result = channel.hashCode();
-        result = 31 * result + swarmId.hashCode();
+        result = 31 * result + swarmID.hashCode();
         result = 31 * result + type.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return "SwarmIdRegistrationEvent{" +
+        return "SwarmIDRegistrationEvent{" +
                "channel=" + channel +
-               ", swarmId=" + swarmId +
+               ", swarmID=" + swarmID +
                ", type=" + type +
                '}';
     }
