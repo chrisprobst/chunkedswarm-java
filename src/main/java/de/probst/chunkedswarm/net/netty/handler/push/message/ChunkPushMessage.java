@@ -1,33 +1,40 @@
 package de.probst.chunkedswarm.net.netty.handler.push.message;
 
-import de.probst.chunkedswarm.util.Block;
-import de.probst.chunkedswarm.util.Chunk;
+import de.probst.chunkedswarm.util.BlockHeader;
+import de.probst.chunkedswarm.util.ChunkHeader;
 
-import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 20.08.15
  */
-public final class SinglePushMessage implements Serializable {
+public final class ChunkPushMessage {
 
-    private final Block block;
-    private final Chunk chunk;
+    private final BlockHeader block;
+    private final ChunkHeader chunk;
+    private final ByteBuffer chunkPayload;
 
-    public SinglePushMessage(Block block, Chunk chunk) {
+    public ChunkPushMessage(BlockHeader block, ChunkHeader chunk, ByteBuffer chunkPayload) {
         Objects.requireNonNull(block);
         Objects.requireNonNull(chunk);
+        Objects.requireNonNull(chunkPayload);
         this.block = block;
         this.chunk = chunk;
+        this.chunkPayload = chunkPayload;
     }
 
-    public Block getBlock() {
+    public BlockHeader getBlock() {
         return block;
     }
 
-    public Chunk getChunk() {
+    public ChunkHeader getChunk() {
         return chunk;
+    }
+
+    public ByteBuffer getChunkPayload() {
+        return chunkPayload;
     }
 
     @Override
@@ -35,10 +42,11 @@ public final class SinglePushMessage implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SinglePushMessage that = (SinglePushMessage) o;
+        ChunkPushMessage that = (ChunkPushMessage) o;
 
         if (!block.equals(that.block)) return false;
-        return chunk.equals(that.chunk);
+        if (!chunk.equals(that.chunk)) return false;
+        return chunkPayload.equals(that.chunkPayload);
 
     }
 
@@ -46,6 +54,7 @@ public final class SinglePushMessage implements Serializable {
     public int hashCode() {
         int result = block.hashCode();
         result = 31 * result + chunk.hashCode();
+        result = 31 * result + chunkPayload.hashCode();
         return result;
     }
 
@@ -54,6 +63,7 @@ public final class SinglePushMessage implements Serializable {
         return "SinglePushMessage{" +
                "block=" + block +
                ", chunk=" + chunk +
+               ", chunkPayload=" + chunkPayload +
                '}';
     }
 }

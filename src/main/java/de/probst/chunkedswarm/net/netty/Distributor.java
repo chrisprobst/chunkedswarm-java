@@ -5,11 +5,10 @@ import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIDRegistrationHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
-import de.probst.chunkedswarm.net.netty.handler.push.PushMessageWriteHandle;
 import de.probst.chunkedswarm.net.netty.handler.push.PushHandler;
+import de.probst.chunkedswarm.net.netty.handler.push.PushWriteRequestHandler;
 import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
 import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
-import de.probst.chunkedswarm.util.Block;
 import de.probst.chunkedswarm.util.SwarmIDManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -28,6 +27,8 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -71,7 +72,7 @@ public final class Distributor implements Closeable {
                                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
                                ch.pipeline().addLast(new LengthFieldPrepender(4));
                                ch.pipeline().addLast(new SimpleCodec());
-                               ch.pipeline().addLast(new PushMessageWriteHandle());
+                               ch.pipeline().addLast(new PushWriteRequestHandler());
 
                                // Track all channels
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
@@ -148,8 +149,8 @@ public final class Distributor implements Closeable {
         return initChannelPromise;
     }
 
-    public void distribute(Block block) {
-        acceptorChannel.pipeline().fireUserEventTriggered(new PushEvent(block));
+    public void distribute(ByteBuffer payload, int sequence, int priority, Duration duration) {
+        acceptorChannel.pipeline().fireUserEventTriggered(new PushEvent(payload, sequence, priority, duration));
     }
 
     public ChannelGroupFuture closeAsync() {

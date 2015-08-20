@@ -21,10 +21,6 @@ public final class IoUtil {
 
     public static final int DEFAULT_TRANSFER_BUFFER_SIZE = 65535;
 
-    private IoUtil() {
-
-    }
-
     public static void transfer(ReadableByteChannel readableByteChannel, WritableByteChannel writableByteChannel)
             throws IOException {
         try (ReadableByteChannel ref1 = readableByteChannel; WritableByteChannel ref2 = writableByteChannel) {

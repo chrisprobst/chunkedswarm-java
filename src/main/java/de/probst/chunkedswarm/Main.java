@@ -2,12 +2,12 @@ package de.probst.chunkedswarm;
 
 import de.probst.chunkedswarm.net.netty.Distributor;
 import de.probst.chunkedswarm.net.netty.Forwarder;
-import de.probst.chunkedswarm.util.Block;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +46,7 @@ public class Main {
             };
 
             Runnable kill = () -> {
-                for (int i = 0; i < 2; i++) {
+                for (int i = 0; i < 1; i++) {
                     try {
                         if (portsToForwarders.isEmpty()) {
                             return;
@@ -54,15 +54,15 @@ public class Main {
                         Map.Entry<Integer, Forwarder> entry = portsToForwarders.entrySet().iterator().next();
                         portsToForwarders.remove(entry.getKey());
                         entry.getValue().close();
-                        Thread.sleep(250);
+                        Thread.sleep(100);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
             };
 
-            // Create 30 for the beginning
-            for (int i = 0; i < 30; i++) {
+            // Create for the beginning
+            for (int i = 0; i < 10; i++) {
                 createForwarder.run();
             }
 
@@ -77,7 +77,8 @@ public class Main {
                 } else if (c == 'a') {
                     createForwarder.run();
                 } else if (c == 'p') {
-                    distributor.distribute(new Block("0x000" + seq, seq++, 16, 8092, Duration.ofSeconds(10)));
+                    ByteBuffer buf = ByteBuffer.allocateDirect(1024 * 1024 * 10);
+                    distributor.distribute(buf, seq, 0, Duration.ofSeconds(10));
                 }
             }
 

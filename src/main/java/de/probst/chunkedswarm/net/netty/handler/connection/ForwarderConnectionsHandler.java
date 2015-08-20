@@ -254,9 +254,11 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
         scheduleFireAcknowledgeNeighbours();
     }
 
+    private boolean acknowledgedOnce;
+
     private void acknowledgeNeighbours() {
         // No updates, skip this update
-        if (acknowledgeNeighboursMessage.isEmpty()) {
+        if (acknowledgedOnce && acknowledgeNeighboursMessage.isEmpty()) {
             return;
         }
 
@@ -279,7 +281,10 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
 
         // Write the update neighbours message
         ctx.writeAndFlush(acknowledgeNeighboursMessage, acknowledgeChannelPromise)
-           .addListener(fut -> acknowledgeChannelPromise = null)
+           .addListener(fut -> {
+               acknowledgeChannelPromise = null;
+               acknowledgedOnce = true;
+           })
            .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
 
 

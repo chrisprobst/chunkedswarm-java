@@ -6,19 +6,19 @@ import java.io.Serializable;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 20.08.15
  */
-public final class Chunk implements Serializable {
+public final class ChunkHeader implements Serializable {
 
-    private final long sequence;
+    private final int sequence;
     private final int chunkIndex;
-    private final long size;
+    private final int size;
 
-    Chunk(long sequence, int chunkIndex, long size) {
+    ChunkHeader(int sequence, int chunkIndex, int size) {
         this.sequence = sequence;
         this.chunkIndex = chunkIndex;
         this.size = size;
     }
 
-    public long getSequence() {
+    public int getSequence() {
         return sequence;
     }
 
@@ -26,7 +26,7 @@ public final class Chunk implements Serializable {
         return chunkIndex;
     }
 
-    public long getSize() {
+    public int getSize() {
         return size;
     }
 
@@ -35,7 +35,7 @@ public final class Chunk implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Chunk chunk = (Chunk) o;
+        ChunkHeader chunk = (ChunkHeader) o;
 
         if (sequence != chunk.sequence) return false;
         if (chunkIndex != chunk.chunkIndex) return false;
@@ -45,9 +45,9 @@ public final class Chunk implements Serializable {
 
     @Override
     public int hashCode() {
-        int result = (int) (sequence ^ (sequence >>> 32));
+        int result = sequence;
         result = 31 * result + chunkIndex;
-        result = 31 * result + (int) (size ^ (size >>> 32));
+        result = 31 * result + size;
         return result;
     }
 

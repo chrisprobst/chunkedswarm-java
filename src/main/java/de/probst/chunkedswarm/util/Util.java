@@ -1,6 +1,7 @@
 package de.probst.chunkedswarm.util;
 
 import java.util.Collection;
+import java.util.Formatter;
 import java.util.Objects;
 
 /**
@@ -11,6 +12,16 @@ public final class Util {
 
     private Util() {
 
+    }
+
+    public static String bytesToHex(final byte[] hash) {
+        Formatter formatter = new Formatter();
+        for (byte b : hash) {
+            formatter.format("%02x", b);
+        }
+        String result = formatter.toString();
+        formatter.close();
+        return result;
     }
 
     public static void closeAllAndThrow(Collection<? extends AutoCloseable> closeables) throws Exception {

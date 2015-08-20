@@ -1,7 +1,7 @@
 package de.probst.chunkedswarm.net.netty.handler.push.event;
 
-import de.probst.chunkedswarm.util.Block;
-
+import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Objects;
 
 /**
@@ -10,15 +10,34 @@ import java.util.Objects;
  */
 public final class PushEvent {
 
-    private final Block block;
+    private final ByteBuffer payload;
+    private final int sequence;
+    private final int priority;
+    private final Duration duration;
 
-    public PushEvent(Block block) {
-        Objects.requireNonNull(block);
-        this.block = block;
+    public PushEvent(ByteBuffer payload, int sequence, int priority, Duration duration) {
+        Objects.requireNonNull(payload);
+        Objects.requireNonNull(duration);
+        this.payload = payload;
+        this.sequence = sequence;
+        this.priority = priority;
+        this.duration = duration;
     }
 
-    public Block getBlock() {
-        return block;
+    public ByteBuffer getPayload() {
+        return payload;
+    }
+
+    public int getSequence() {
+        return sequence;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public Duration getDuration() {
+        return duration;
     }
 
     @Override
@@ -28,19 +47,29 @@ public final class PushEvent {
 
         PushEvent pushEvent = (PushEvent) o;
 
-        return block.equals(pushEvent.block);
+        if (sequence != pushEvent.sequence) return false;
+        if (priority != pushEvent.priority) return false;
+        if (!payload.equals(pushEvent.payload)) return false;
+        return duration.equals(pushEvent.duration);
 
     }
 
     @Override
     public int hashCode() {
-        return block.hashCode();
+        int result = payload.hashCode();
+        result = 31 * result + sequence;
+        result = 31 * result + priority;
+        result = 31 * result + duration.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
         return "PushEvent{" +
-               "block=" + block +
+               "payload=" + payload +
+               ", sequence=" + sequence +
+               ", priority=" + priority +
+               ", duration=" + duration +
                '}';
     }
 }
