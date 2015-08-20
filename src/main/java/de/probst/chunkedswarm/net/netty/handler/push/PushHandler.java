@@ -2,21 +2,28 @@ package de.probst.chunkedswarm.net.netty.handler.push;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
+import de.probst.chunkedswarm.net.netty.handler.push.message.PushMessage;
+import de.probst.chunkedswarm.util.Block;
 import de.probst.chunkedswarm.util.Graph;
 import de.probst.chunkedswarm.util.NodeGroup;
 import de.probst.chunkedswarm.util.NodeGroups;
-import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.ChannelMatcher;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PrimitiveIterator;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 /**
@@ -36,6 +43,8 @@ public final class PushHandler extends ChannelHandlerAdapter {
 
     // Used to store all incoming events
     private final Map<UUID, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
+
+    private final Set<ChannelGroupFuture> pendingPushes = new LinkedHashSet<>();
 
     // The channel context
     private ChannelHandlerContext ctx;
@@ -87,6 +96,15 @@ public final class PushHandler extends ChannelHandlerAdapter {
                         .collect(Collectors.toSet())::contains;
     }
 
+    private Map<Channel, Integer> nodeGroupToChunkMap(NodeGroup<UUID> nodeGroup) {
+        PrimitiveIterator.OfInt idxs = IntStream.range(0, nodeGroup.getNodes().size()).iterator();
+        return nodeGroup.getNodes()
+                        .stream()
+                        .map(acknowledgedNeighbours::get)
+                        .map(AcknowledgedNeighboursEvent::getChannel)
+                        .collect(Collectors.toMap(c -> c, c -> idxs.next()));
+    }
+
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
         switch (evt.getType()) {
             case Update:
@@ -98,41 +116,55 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
     }
 
-    int i = 0;
-    volatile ChannelGroupFuture next;
-
     private void handlePushEvent(PushEvent evt) {
 
-        if (next != null) {
-            System.out.println("Pusher: Skipping...");
+        // At first, compute all meshes
+        // Default policy takes just the biggest mesh
+        NodeGroups<UUID> meshes = computeMeshes();
+        if (meshes.getGroups().isEmpty()) {
+            System.out.println("[PushHandler] Nothing to push, node group empty");
             return;
         }
 
-        ByteBuf buf = ctx.alloc().buffer(0xFFFF * 4 * 5);
-        for (int j = 0; j < 0xFFFF * 5; j++) {
-            buf.writeInt((int) (Math.random() * 10000));
-        }
-        buf.setInt(0, i++);
-        int c = buf.readableBytes();
-        NodeGroups<UUID> meshes = computeMeshes();
-        if (!meshes.getGroups().isEmpty()) {
-            NodeGroup<UUID> largestGroup = meshes.getGroups().get(0);
-            System.out.println("Pusher: Pushing to node group of size: " + largestGroup.getNodes().size());
-            (next = allChannels.writeAndFlush(buf, nodeGroupToChannelMatcher(largestGroup)))
-                    .addListener(fut -> {
-                        ChannelGroupFuture groupFut = (ChannelGroupFuture) fut;
-                        long count = StreamSupport.stream(groupFut.spliterator(), false).count();
-                        long failed = !groupFut.isSuccess() ? StreamSupport.stream(groupFut.cause().spliterator(),
-                                                                                   false).count() : 0;
-                        String rate = (count - failed) + "/" + count;
+        // Choose the largest group by default
+        NodeGroup<UUID> largestGroup = meshes.getGroups().get(0);
 
-                        System.out.println("Pusher: Rate: " + rate + " Size:" + (c * count / 1024.0 / 1024.0));
-                        next = null;
-                    });
+        // Create chunk map from largest node group
+        Map<Channel, Integer> chunkMap = nodeGroupToChunkMap(largestGroup);
 
-        } else {
-            System.out.println("Pusher: Node group empty");
-        }
+        // Create a split version of the block
+        Block splitBlock = new Block(evt.getBlock(),
+                                     chunkMap.keySet()
+                                             .stream()
+                                             .map(Channel::id)
+                                             .map(ChannelId::toString)
+                                             .collect(Collectors.toList()));
+
+        // Send block to all peers
+        ChannelGroupFuture pushFuture = allChannels.writeAndFlush(new PushMessage(splitBlock, chunkMap),
+                                                                  chunkMap.keySet()::contains);
+
+        // Compute statistics
+        long count = StreamSupport.stream(pushFuture.spliterator(), false).count();
+        System.out.println("[PushHandler] Pushing: " + evt.getBlock());
+
+        // Keep track of future
+        pendingPushes.add(pushFuture);
+        pushFuture.addListener(fut -> {
+
+            // Remove from pending
+            pendingPushes.remove(pushFuture);
+
+            // Compute statistics
+            long failed = !pushFuture.isSuccess() ? StreamSupport.stream(pushFuture.cause().spliterator(), false)
+                                                                 .count() : 0;
+            String rate = (count - failed) + "/" + count;
+            System.out.println("[PushHandler] Pushed: " + evt.getBlock() + ", Success: " + rate);
+
+            if (!pushFuture.isSuccess()) {
+                pushFuture.cause().iterator().forEachRemaining(e -> e.getValue().printStackTrace());
+            }
+        });
     }
 
     public PushHandler(ChannelGroup allChannels, UUID masterUUID) {

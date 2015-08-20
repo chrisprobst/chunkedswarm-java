@@ -2,7 +2,8 @@ package de.probst.chunkedswarm.util;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -14,18 +15,26 @@ import java.util.stream.Stream;
 public final class Block implements Serializable {
 
     private final String hash;
-    private final String[] chunkHashes;
+    private final List<String> chunkHashes;
     private final long sequence;
     private final int priority;
     private final long size;
     private final Duration duration;
 
-    public Block(String hash, String[] chunkHashes, long sequence, int priority, long size, Duration duration) {
+    public Block(Block block, List<String> chunkHashes) {
+        this(block.hash, chunkHashes, block.sequence, block.priority, block.size, block.duration);
+    }
+
+    public Block(String hash, long sequence, int priority, long size, Duration duration) {
+        this(hash, Collections.singletonList(hash), sequence, priority, size, duration);
+    }
+
+    public Block(String hash, List<String> chunkHashes, long sequence, int priority, long size, Duration duration) {
         Objects.requireNonNull(hash);
         Objects.requireNonNull(chunkHashes);
         Objects.requireNonNull(duration);
         this.hash = hash;
-        this.chunkHashes = chunkHashes;
+        this.chunkHashes = Collections.unmodifiableList(chunkHashes);
         this.sequence = sequence;
         this.priority = priority;
         this.size = size;
@@ -36,12 +45,12 @@ public final class Block implements Serializable {
         return hash;
     }
 
-    public String[] getChunkHashes() {
+    public List<String> getChunkHashes() {
         return chunkHashes;
     }
 
     public int getChunkCount() {
-        return chunkHashes.length;
+        return chunkHashes.size();
     }
 
     public long getSequence() {
@@ -61,18 +70,18 @@ public final class Block implements Serializable {
     }
 
     public long getChunkSize(int chunkIndex) {
-        if (chunkIndex < 0 || chunkIndex >= chunkHashes.length) {
-            throw new IllegalArgumentException("chunkIndex < 0 || chunkIndex >= chunkHashes.length");
+        if (chunkIndex < 0 || chunkIndex >= chunkHashes.size()) {
+            throw new IllegalArgumentException("chunkIndex < 0 || chunkIndex >= chunkHashes.size()");
         }
 
         // Compute default chunk size (floored to previous integer)
-        long chunkSize = size / chunkHashes.length;
+        long chunkSize = size / chunkHashes.size();
 
         // Compute the size of the last chunk
-        long lastChunkSize = chunkSize + (size % chunkHashes.length);
+        long lastChunkSize = chunkSize + (size % chunkHashes.size());
 
         // Return appropriate value
-        return chunkIndex == chunkHashes.length - 1 ? lastChunkSize : chunkSize;
+        return chunkIndex == chunkHashes.size() - 1 ? lastChunkSize : chunkSize;
     }
 
 
@@ -95,8 +104,7 @@ public final class Block implements Serializable {
         if (priority != block.priority) return false;
         if (size != block.size) return false;
         if (!hash.equals(block.hash)) return false;
-        // Probably incorrect - comparing Object[] arrays with Arrays.equals
-        if (!Arrays.equals(chunkHashes, block.chunkHashes)) return false;
+        if (!chunkHashes.equals(block.chunkHashes)) return false;
         return duration.equals(block.duration);
 
     }
@@ -104,7 +112,7 @@ public final class Block implements Serializable {
     @Override
     public int hashCode() {
         int result = hash.hashCode();
-        result = 31 * result + Arrays.hashCode(chunkHashes);
+        result = 31 * result + chunkHashes.hashCode();
         result = 31 * result + (int) (sequence ^ (sequence >>> 32));
         result = 31 * result + priority;
         result = 31 * result + (int) (size ^ (size >>> 32));
@@ -116,7 +124,7 @@ public final class Block implements Serializable {
     public String toString() {
         return "Block{" +
                "hash='" + hash + '\'' +
-               ", chunkHashes=" + Arrays.toString(chunkHashes) +
+               ", chunkHashes=" + chunkHashes +
                ", sequence=" + sequence +
                ", priority=" + priority +
                ", size=" + size +

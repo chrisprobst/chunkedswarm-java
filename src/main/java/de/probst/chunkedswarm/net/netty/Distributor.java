@@ -5,8 +5,11 @@ import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIDRegistrationHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
+import de.probst.chunkedswarm.net.netty.handler.push.PushMessageWriteHandle;
 import de.probst.chunkedswarm.net.netty.handler.push.PushHandler;
+import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
 import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
+import de.probst.chunkedswarm.util.Block;
 import de.probst.chunkedswarm.util.SwarmIDManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -38,16 +41,18 @@ public final class Distributor implements Closeable {
 
     private final SwarmIDManager swarmIDManager;
     private final UUID masterUUID;
+    private final EventLoopGroup acceptEventLoopGroup;
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;
+    private final Channel acceptorChannel;
 
     // Represents the result of initialization
     private final ChannelPromise initChannelPromise;
 
     private ChannelFuture openForwarderAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
-        serverBootstrap.group(eventLoopGroup)
+        serverBootstrap.group(acceptEventLoopGroup, eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
                        .option(ChannelOption.SO_BACKLOG, BACKLOG)
                        .handler(new ChannelInitializer<ServerChannel>() {
@@ -66,6 +71,7 @@ public final class Distributor implements Closeable {
                                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
                                ch.pipeline().addLast(new LengthFieldPrepender(4));
                                ch.pipeline().addLast(new SimpleCodec());
+                               ch.pipeline().addLast(new PushMessageWriteHandle());
 
                                // Track all channels
                                ch.pipeline().addLast(new ChannelGroupHandler(allChannels));
@@ -101,7 +107,10 @@ public final class Distributor implements Closeable {
         swarmIDManager = new SwarmIDManager();
         this.eventLoopGroup = eventLoopGroup;
         this.socketAddress = socketAddress;
-        allChannels = new CloseableChannelGroup(eventLoopGroup.next());
+
+        // Init accept event loop group and use it with channel group
+        acceptEventLoopGroup = eventLoopGroup.next();
+        allChannels = new CloseableChannelGroup(acceptEventLoopGroup.next());
 
         // Create master uuid and blacklist this uuid
         swarmIDManager.blacklistUUID(masterUUID = swarmIDManager.newRandomUUID());
@@ -112,6 +121,9 @@ public final class Distributor implements Closeable {
 
         // Initialize forwarder
         ChannelFuture bindFuture = openForwarderAcceptChannel();
+
+        // Save acceptor channel
+        acceptorChannel = bindFuture.channel();
 
         // Create new init promise
         initChannelPromise = bindFuture.channel().newPromise();
@@ -134,6 +146,10 @@ public final class Distributor implements Closeable {
 
     public ChannelFuture getInitFuture() {
         return initChannelPromise;
+    }
+
+    public void distribute(Block block) {
+        acceptorChannel.pipeline().fireUserEventTriggered(new PushEvent(block));
     }
 
     public ChannelGroupFuture closeAsync() {

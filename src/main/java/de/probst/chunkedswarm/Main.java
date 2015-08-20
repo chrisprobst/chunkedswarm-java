@@ -2,13 +2,15 @@ package de.probst.chunkedswarm;
 
 import de.probst.chunkedswarm.net.netty.Distributor;
 import de.probst.chunkedswarm.net.netty.Forwarder;
+import de.probst.chunkedswarm.util.Block;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -23,38 +25,67 @@ public class Main {
         try {
             Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
 
-            List<Forwarder> forwarders = new ArrayList<>(4);
-            for (int i = 0; i < 30; i++) {
-                int k = i;
-                Forwarder f = new Forwarder(eventLoopGroup,
-                                            new InetSocketAddress(20000 + i),
-                                            new InetSocketAddress("kr0e.no-ip.info", 1337));
-                f.getInitFuture().addListener(fut -> {
-                    if (!fut.isSuccess()) {
-                        System.out.println("Peer " + k + " connection result: " + fut.cause());
+            Map<Integer, Forwarder> portsToForwarders = new HashMap<>();
+            Runnable createForwarder = () -> {
+                for (int i = 0; i < 30; i++) {
+                    int k = i;
+                    if (portsToForwarders.containsKey(k)) {
+                        continue;
                     }
-                });
-                forwarders.add(f);
-            }
+                    Forwarder f = new Forwarder(eventLoopGroup,
+                                                new InetSocketAddress(20000 + i),
+                                                new InetSocketAddress("kr0e.no-ip.info", 1337));
+                    f.getInitFuture().addListener(fut -> {
+                        if (!fut.isSuccess()) {
+                            System.out.println("Peer " + k + " connection result: " + fut.cause());
+                        }
+                    });
+                    portsToForwarders.put(i, f);
+                    return;
+                }
+            };
 
-            Runnable kill10 = () -> {
+            Runnable kill = () -> {
                 for (int i = 0; i < 2; i++) {
                     try {
-                        forwarders.remove(0).close();
-                        Thread.sleep(73);
+                        if (portsToForwarders.isEmpty()) {
+                            return;
+                        }
+                        Map.Entry<Integer, Forwarder> entry = portsToForwarders.entrySet().iterator().next();
+                        portsToForwarders.remove(entry.getKey());
+                        entry.getValue().close();
+                        Thread.sleep(250);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
             };
 
-            while (!forwarders.isEmpty()) {
+            // Create 30 for the beginning
+            for (int i = 0; i < 30; i++) {
+                createForwarder.run();
+            }
 
-                System.in.read();
-                kill10.run();
+            int seq = 0;
+            while (true) {
+                int c = System.in.read();
+
+                if (c == 'q') {
+                    break;
+                } else if (c == 'k') {
+                    kill.run();
+                } else if (c == 'a') {
+                    createForwarder.run();
+                } else if (c == 'p') {
+                    distributor.distribute(new Block("0x000" + seq, seq++, 16, 8092, Duration.ofSeconds(10)));
+                }
             }
 
 
+            while (!portsToForwarders.isEmpty()) {
+                System.in.read();
+                kill.run();
+            }
 
             try {
                 distributor.close();
@@ -62,7 +93,7 @@ public class Main {
                 e.printStackTrace();
             }
 
-            for (Forwarder forwarder : forwarders) {
+            for (Forwarder forwarder : portsToForwarders.values()) {
                 try {
                     forwarder.close();
                 } catch (IOException e) {
