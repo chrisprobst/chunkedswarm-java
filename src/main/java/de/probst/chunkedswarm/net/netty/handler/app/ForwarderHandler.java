@@ -10,7 +10,7 @@ import io.netty.channel.ChannelHandlerContext;
 public class ForwarderHandler extends ChannelHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        System.out.println(cause);
+        System.out.println("Closing forwarder2distributor channel. Cause: " + cause);
         ctx.close();
     }
 

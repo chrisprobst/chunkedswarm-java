@@ -11,7 +11,7 @@ public class DistributorHandler extends ChannelHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        System.out.println(cause);
+        System.out.println("Closing distributor2forwarder channel. Cause: " + cause);
         ctx.close();
     }
 }

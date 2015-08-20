@@ -1,7 +1,5 @@
 package de.probst.chunkedswarm.util;
 
-import de.probst.chunkedswarm.util.later.Chunk;
-
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Arrays;

@@ -187,7 +187,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
 
 
                         // Connection refused...
-                        // TODO: Reconnect ?
+                        // TODO: (major) Reconnect ?
                         pendingConnections.remove(evt.getSwarmID());
 
                         break;
@@ -228,10 +228,10 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                 switch (evt.getType()) {
                     case ConnectionRefused:
 
-                        // TODO: What could this mean ? Maybe that WE refused a connection ?
+                        // TODO: (major) What could this mean ? Maybe that WE refused a connection ?
                         break;
                     case Connected:
-                        // TODO: Verify SwarmID !!
+                        // TODO: (major) Verify SwarmID !!
                         // Add to added neighbours
                         acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmID().getUUID());
                         break;

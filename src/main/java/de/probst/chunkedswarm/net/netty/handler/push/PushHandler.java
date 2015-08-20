@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -29,8 +28,6 @@ import java.util.stream.StreamSupport;
  */
 public final class PushHandler extends ChannelHandlerAdapter {
 
-    public static final long PUSH_INTERVAL_MS = 1000;
-
     // All channels
     private final ChannelGroup allChannels;
 
@@ -42,14 +39,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
 
     // The channel context
     private ChannelHandlerContext ctx;
-
-    private void firePush() {
-        ctx.pipeline().fireUserEventTriggered(new PushEvent());
-    }
-
-    private void scheduleFirePush() {
-        ctx.executor().schedule(this::firePush, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-    }
 
     private NodeGroups<UUID> computeMeshes() {
         // Create graphs to compute the meshes
@@ -109,16 +98,10 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
     }
 
-    private void handlePushEvent(PushEvent evt) {
-        push();
-        scheduleFirePush();
-    }
-
     int i = 0;
     volatile ChannelGroupFuture next;
 
-    private void push() {
-
+    private void handlePushEvent(PushEvent evt) {
 
         if (next != null) {
             System.out.println("Pusher: Skipping...");
@@ -157,13 +140,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
         Objects.requireNonNull(masterUUID);
         this.allChannels = allChannels;
         this.masterUUID = masterUUID;
-    }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        this.ctx = ctx;
-        scheduleFirePush();
-        super.channelActive(ctx);
     }
 
     @Override
