@@ -34,6 +34,8 @@ import java.util.UUID;
  */
 public final class Distributor implements Closeable {
 
+    public static final int BACKLOG = 256;
+
     private final SwarmIDManager swarmIDManager;
     private final UUID masterUUID;
     private final EventLoopGroup eventLoopGroup;
@@ -47,7 +49,7 @@ public final class Distributor implements Closeable {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
-                       .option(ChannelOption.SO_BACKLOG, 256)
+                       .option(ChannelOption.SO_BACKLOG, BACKLOG)
                        .handler(new ChannelInitializer<ServerChannel>() {
                            @Override
                            protected void initChannel(ServerChannel ch) throws Exception {

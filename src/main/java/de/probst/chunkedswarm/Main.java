@@ -24,7 +24,7 @@ public class Main {
             Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
 
             List<Forwarder> forwarders = new ArrayList<>(4);
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < 30; i++) {
                 int k = i;
                 Forwarder f = new Forwarder(eventLoopGroup,
                                             new InetSocketAddress(20000 + i),
