@@ -3,20 +3,21 @@ package de.probst.chunkedswarm.util;
 import java.io.Serializable;
 import java.net.SocketAddress;
 import java.util.Objects;
+import java.util.UUID;
 
-public final class SwarmId implements Comparable<SwarmId>, Serializable {
+public final class SwarmId implements Serializable {
 
-    private final String uuid;
+    private final UUID uuid;
     private final SocketAddress address;
 
-    public SwarmId(String uuid, SocketAddress address) {
+    public SwarmId(UUID uuid, SocketAddress address) {
         Objects.requireNonNull(uuid);
         Objects.requireNonNull(address);
         this.uuid = uuid;
         this.address = address;
     }
 
-    public String getUuid() {
+    public UUID getUuid() {
         return uuid;
     }
 
@@ -45,14 +46,9 @@ public final class SwarmId implements Comparable<SwarmId>, Serializable {
 
     @Override
     public String toString() {
-        return "SwarmID{" +
-               "uuid='" + uuid + '\'' +
+        return "SwarmId{" +
+               "uuid=" + uuid +
                ", address=" + address +
                '}';
-    }
-
-    @Override
-    public int compareTo(SwarmId o) {
-        return uuid.compareTo(o.uuid);
     }
 }

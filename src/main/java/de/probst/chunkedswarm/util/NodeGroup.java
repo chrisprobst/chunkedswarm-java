@@ -8,7 +8,7 @@ import java.util.Set;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 21.03.15
  */
-public class NodeGroup<T> implements Comparable<NodeGroup<?>> {
+public class NodeGroup<T> {
 
     // All nodes
     private final Set<T> nodes;
@@ -61,10 +61,5 @@ public class NodeGroup<T> implements Comparable<NodeGroup<?>> {
         return "NodeGroup{" +
                "nodes=" + nodes +
                '}';
-    }
-
-    @Override
-    public int compareTo(NodeGroup<?> o) {
-        return Integer.compare(nodes.size(), o.nodes.size());
     }
 }

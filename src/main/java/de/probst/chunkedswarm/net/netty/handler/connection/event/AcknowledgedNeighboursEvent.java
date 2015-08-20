@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -23,10 +24,10 @@ public final class AcknowledgedNeighboursEvent {
     private final Type type;
 
     // Store all acknowledged outbound neighbours here
-    private final Set<String> acknowledgedOutboundNeighbours;
+    private final Set<UUID> acknowledgedOutboundNeighbours;
 
     // Store all acknowledged inbound neighbours here
-    private final Set<String> acknowledgedInboundNeighbours;
+    private final Set<UUID> acknowledgedInboundNeighbours;
 
     // The message, which changed the acknowledged neighbours
     private final Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage;
@@ -38,8 +39,8 @@ public final class AcknowledgedNeighboursEvent {
     private final Channel channel;
 
     public AcknowledgedNeighboursEvent(Type type,
-                                       Set<String> acknowledgedOutboundNeighbours,
-                                       Set<String> acknowledgedInboundNeighbours,
+                                       Set<UUID> acknowledgedOutboundNeighbours,
+                                       Set<UUID> acknowledgedInboundNeighbours,
                                        Optional<AcknowledgeNeighboursMessage> acknowledgeNeighboursMessage,
                                        SwarmId localSwarmId,
                                        Channel channel) {
@@ -62,11 +63,11 @@ public final class AcknowledgedNeighboursEvent {
         return type;
     }
 
-    public Set<String> getAcknowledgedOutboundNeighbours() {
+    public Set<UUID> getAcknowledgedOutboundNeighbours() {
         return acknowledgedOutboundNeighbours;
     }
 
-    public Set<String> getAcknowledgedInboundNeighbours() {
+    public Set<UUID> getAcknowledgedInboundNeighbours() {
         return acknowledgedInboundNeighbours;
     }
 

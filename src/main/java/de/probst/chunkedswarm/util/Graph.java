@@ -113,7 +113,7 @@ public final class Graph<T> implements Cloneable {
         meshCandidates.getGroups().forEach(ng -> ng.getNodes().remove(root));
 
         // Sort according to the number of nodes per group (highest first)
-        meshCandidates.getGroups().sort(Comparator.reverseOrder());
+        meshCandidates.getGroups().sort(Comparator.comparing((NodeGroup<T> g) -> g.getNodes().size()).reversed());
 
         return meshCandidates;
     }

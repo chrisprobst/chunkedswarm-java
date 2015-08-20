@@ -15,16 +15,16 @@ import java.util.UUID;
 public final class SwarmIdManager {
 
     // Uuids from this set will not be accepted
-    private final Set<String> uuidBlacklist = new HashSet<>();
+    private final Set<UUID> uuidBlacklist = new HashSet<>();
 
     // Addresses from this set will not be accepted
     private final Set<SocketAddress> addressBlacklist = new HashSet<>();
 
     // The maps which store the swarm ids
     private final Map<SocketAddress, SwarmId> addressToSwarmId = new HashMap<>();
-    private final Map<String, SwarmId> uuidToSwarmId = new HashMap<>();
+    private final Map<UUID, SwarmId> uuidToSwarmId = new HashMap<>();
 
-    private SwarmId createUniqueSwarmId(SocketAddress address) {
+    private synchronized SwarmId createUniqueSwarmId(SocketAddress address) {
         Objects.requireNonNull(address);
 
         // Check if address is already known
@@ -34,7 +34,7 @@ public final class SwarmIdManager {
         }
 
         // Find free uuid
-        String uuid;
+        UUID uuid;
         do {
             uuid = newRandomUuid();
         } while (uuidBlacklist.contains(uuid) || uuidToSwarmId.containsKey(uuid));
@@ -43,15 +43,15 @@ public final class SwarmIdManager {
         return new SwarmId(uuid, address);
     }
 
-    public String newRandomUuid() {
-        return UUID.randomUUID().toString();
+    public UUID newRandomUuid() {
+        return UUID.randomUUID();
     }
 
-    public synchronized boolean blacklistUuid(String uuid) {
+    public synchronized boolean blacklistUuid(UUID uuid) {
         return uuidBlacklist.add(uuid);
     }
 
-    public synchronized boolean unblacklistUuid(String uuid) {
+    public synchronized boolean unblacklistUuid(UUID uuid) {
         return uuidBlacklist.remove(uuid);
     }
 

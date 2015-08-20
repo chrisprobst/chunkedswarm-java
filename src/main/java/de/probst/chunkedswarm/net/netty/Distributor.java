@@ -26,6 +26,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -34,7 +35,7 @@ import java.util.Objects;
 public final class Distributor implements Closeable {
 
     private final SwarmIdManager swarmIdManager;
-    private final String masterUuid;
+    private final UUID masterUuid;
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;

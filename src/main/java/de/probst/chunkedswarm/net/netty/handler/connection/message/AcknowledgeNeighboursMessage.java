@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
@@ -11,19 +12,19 @@ import java.util.Set;
  */
 public final class AcknowledgeNeighboursMessage implements Serializable {
 
-    private final Set<String> addedOutboundNeighbours;
-    private final Set<String> removedOutboundNeighbours;
-    private final Set<String> addedInboundNeighbours;
-    private final Set<String> removedInboundNeighbours;
+    private final Set<UUID> addedOutboundNeighbours;
+    private final Set<UUID> removedOutboundNeighbours;
+    private final Set<UUID> addedInboundNeighbours;
+    private final Set<UUID> removedInboundNeighbours;
 
     public AcknowledgeNeighboursMessage() {
         this(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
     }
 
-    public AcknowledgeNeighboursMessage(Set<String> addedOutboundNeighbours,
-                                        Set<String> removedOutboundNeighbours,
-                                        Set<String> addedInboundNeighbours,
-                                        Set<String> removedInboundNeighbours) {
+    public AcknowledgeNeighboursMessage(Set<UUID> addedOutboundNeighbours,
+                                        Set<UUID> removedOutboundNeighbours,
+                                        Set<UUID> addedInboundNeighbours,
+                                        Set<UUID> removedInboundNeighbours) {
         Objects.requireNonNull(addedOutboundNeighbours);
         Objects.requireNonNull(removedOutboundNeighbours);
         Objects.requireNonNull(addedInboundNeighbours);
@@ -41,11 +42,11 @@ public final class AcknowledgeNeighboursMessage implements Serializable {
                removedInboundNeighbours.isEmpty();
     }
 
-    public Set<String> getAddedOutboundNeighbours() {
+    public Set<UUID> getAddedOutboundNeighbours() {
         return addedOutboundNeighbours;
     }
 
-    public Set<String> getRemovedOutboundNeighbours() {
+    public Set<UUID> getRemovedOutboundNeighbours() {
         return removedOutboundNeighbours;
     }
 
@@ -54,11 +55,11 @@ public final class AcknowledgeNeighboursMessage implements Serializable {
     }
 
 
-    public Set<String> getAddedInboundNeighbours() {
+    public Set<UUID> getAddedInboundNeighbours() {
         return addedInboundNeighbours;
     }
 
-    public Set<String> getRemovedInboundNeighbours() {
+    public Set<UUID> getRemovedInboundNeighbours() {
         return removedInboundNeighbours;
     }
 

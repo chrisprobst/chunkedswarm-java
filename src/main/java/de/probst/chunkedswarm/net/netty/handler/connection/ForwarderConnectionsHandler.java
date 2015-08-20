@@ -231,6 +231,7 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                         // TODO: What could this mean ? Maybe that WE refused a connection ?
                         break;
                     case Connected:
+                        // TODO: Verify SwarmID !!
                         // Add to added neighbours
                         acknowledgeNeighboursMessage.getAddedInboundNeighbours().add(evt.getSwarmId().getUuid());
                         break;

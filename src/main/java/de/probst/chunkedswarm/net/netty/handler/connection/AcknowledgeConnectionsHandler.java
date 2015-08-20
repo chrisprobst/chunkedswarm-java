@@ -11,6 +11,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Handler sends to parent channel:
@@ -25,10 +26,10 @@ import java.util.Set;
 public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
     // Store all acknowledged outbound neighbours here
-    private final Set<String> acknowledgedOutboundNeighbours = new HashSet<>();
+    private final Set<UUID> acknowledgedOutboundNeighbours = new HashSet<>();
 
     // Store all acknowledged inbound neighbours here
-    private final Set<String> acknowledgedInboundNeighbours = new HashSet<>();
+    private final Set<UUID> acknowledgedInboundNeighbours = new HashSet<>();
 
     // The channel handler context
     private ChannelHandlerContext ctx;

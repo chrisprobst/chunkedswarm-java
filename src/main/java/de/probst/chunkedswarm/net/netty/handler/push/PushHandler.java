@@ -15,6 +15,7 @@ import io.netty.channel.group.ChannelMatcher;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -34,10 +35,10 @@ public final class PushHandler extends ChannelHandlerAdapter {
     private final ChannelGroup allChannels;
 
     // The master uuid, so nobody can choose this id
-    private final String masterUuid;
+    private final UUID masterUuid;
 
     // Used to store all incoming events
-    private final Map<String, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
+    private final Map<UUID, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
 
     // The channel context
     private ChannelHandlerContext ctx;
@@ -50,19 +51,19 @@ public final class PushHandler extends ChannelHandlerAdapter {
         ctx.executor().schedule(this::firePush, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 
-    private NodeGroups<String> computeMeshes() {
+    private NodeGroups<UUID> computeMeshes() {
         // Create graphs to compute the meshes
-        Graph<String> outboundGraph = new Graph<>();
-        Graph<String> inboundGraph = new Graph<>();
+        Graph<UUID> outboundGraph = new Graph<>();
+        Graph<UUID> inboundGraph = new Graph<>();
 
         // The master node groups
-        NodeGroup<String> masterOutboundNodeGroup = new NodeGroup<>();
-        NodeGroup<String> masterInboundNodeGroup = new NodeGroup<>();
+        NodeGroup<UUID> masterOutboundNodeGroup = new NodeGroup<>();
+        NodeGroup<UUID> masterInboundNodeGroup = new NodeGroup<>();
 
         // Create node groups for each node
         acknowledgedNeighbours.values().forEach(evt -> {
-            NodeGroup<String> outboundNodeGroup = new NodeGroup<>();
-            NodeGroup<String> inboundNodeGroup = new NodeGroup<>();
+            NodeGroup<UUID> outboundNodeGroup = new NodeGroup<>();
+            NodeGroup<UUID> inboundNodeGroup = new NodeGroup<>();
 
             // Add all acknowledged neighbours into group
             outboundNodeGroup.getNodes().addAll(evt.getAcknowledgedOutboundNeighbours());
@@ -89,7 +90,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
         return outboundGraph.findMeshes(masterUuid, inboundGraph);
     }
 
-    private ChannelMatcher nodeGroupToChannelMatcher(NodeGroup<String> nodeGroup) {
+    private ChannelMatcher nodeGroupToChannelMatcher(NodeGroup<UUID> nodeGroup) {
         return nodeGroup.getNodes()
                         .stream()
                         .map(acknowledgedNeighbours::get)
@@ -130,9 +131,9 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
         buf.setInt(0, i++);
         int c = buf.readableBytes();
-        NodeGroups<String> meshes = computeMeshes();
+        NodeGroups<UUID> meshes = computeMeshes();
         if (!meshes.getGroups().isEmpty()) {
-            NodeGroup<String> largestGroup = meshes.getGroups().get(0);
+            NodeGroup<UUID> largestGroup = meshes.getGroups().get(0);
             System.out.println("Pusher: Pushing to node group of size: " + largestGroup.getNodes().size());
             (next = allChannels.writeAndFlush(buf, nodeGroupToChannelMatcher(largestGroup)))
                     .addListener(fut -> {
@@ -151,7 +152,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
     }
 
-    public PushHandler(ChannelGroup allChannels, String masterUuid) {
+    public PushHandler(ChannelGroup allChannels, UUID masterUuid) {
         Objects.requireNonNull(allChannels);
         Objects.requireNonNull(masterUuid);
         this.allChannels = allChannels;
