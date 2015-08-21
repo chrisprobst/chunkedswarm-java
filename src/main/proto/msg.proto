@@ -1,0 +1,21 @@
+package de.probst.chunkedswarm.net.netty.handler.codec.protobuf;
+
+
+option java_package = "de.probst.chunkedswarm.net.netty.handler.codec.protobuf";
+option java_outer_classname = "ProtoMessages";
+
+message BaseCommand {
+        extensions 100 to max;
+
+        enum CommandType {
+                SERIAL_MSG = 1;
+        }
+        required CommandType type = 1;
+}
+
+message SerializableMsg {
+        extend BaseCommand {
+                optional SerializableMsg cmd = 101;
+        }
+        required bytes payload = 1;
+}

@@ -66,6 +66,12 @@ public class Main {
                 createForwarder.run();
             }
 
+            ByteBuffer buf = ByteBuffer.allocateDirect(1024 * 1024 * 10);
+            while (buf.hasRemaining()) {
+                buf.put((byte) (Math.random() * 256));
+            }
+            buf.flip();
+
             int seq = 0;
             while (true) {
                 int c = System.in.read();
@@ -77,12 +83,13 @@ public class Main {
                 } else if (c == 'a') {
                     createForwarder.run();
                 } else if (c == 'p') {
-                    ByteBuffer buf = ByteBuffer.allocateDirect(1024 * 1024 * 10);
-                    distributor.distribute(buf, seq, 0, Duration.ofSeconds(10));
+
+                    distributor.distribute(buf.duplicate(), seq, 0, Duration.ofSeconds(10));
                 }
             }
 
 
+            System.out.println("Shutting down... Keep pressing enter!");
             while (!portsToForwarders.isEmpty()) {
                 System.in.read();
                 kill.run();

@@ -45,12 +45,18 @@ public final class UpdateNeighboursMessage implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         UpdateNeighboursMessage that = (UpdateNeighboursMessage) o;
 
-        if (!addNeighbours.equals(that.addNeighbours)) return false;
+        if (!addNeighbours.equals(that.addNeighbours)) {
+            return false;
+        }
         return removeNeighbours.equals(that.removeNeighbours);
 
     }

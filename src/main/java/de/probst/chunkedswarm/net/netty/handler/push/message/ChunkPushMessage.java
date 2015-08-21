@@ -3,18 +3,20 @@ package de.probst.chunkedswarm.net.netty.handler.push.message;
 import de.probst.chunkedswarm.util.BlockHeader;
 import de.probst.chunkedswarm.util.ChunkHeader;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 20.08.15
  */
-public final class ChunkPushMessage {
+public final class ChunkPushMessage implements Serializable {
 
     private final BlockHeader block;
     private final ChunkHeader chunk;
-    private final ByteBuffer chunkPayload;
+    private final byte[] chunkPayload;
 
     public ChunkPushMessage(BlockHeader block, ChunkHeader chunk, ByteBuffer chunkPayload) {
         Objects.requireNonNull(block);
@@ -22,7 +24,8 @@ public final class ChunkPushMessage {
         Objects.requireNonNull(chunkPayload);
         this.block = block;
         this.chunk = chunk;
-        this.chunkPayload = chunkPayload;
+        this.chunkPayload = new byte[chunkPayload.remaining()];
+        chunkPayload.get(this.chunkPayload);
     }
 
     public BlockHeader getBlock() {
@@ -34,19 +37,27 @@ public final class ChunkPushMessage {
     }
 
     public ByteBuffer getChunkPayload() {
-        return chunkPayload;
+        return ByteBuffer.wrap(chunkPayload);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ChunkPushMessage that = (ChunkPushMessage) o;
 
-        if (!block.equals(that.block)) return false;
-        if (!chunk.equals(that.chunk)) return false;
-        return chunkPayload.equals(that.chunkPayload);
+        if (!block.equals(that.block)) {
+            return false;
+        }
+        if (!chunk.equals(that.chunk)) {
+            return false;
+        }
+        return Arrays.equals(chunkPayload, that.chunkPayload);
 
     }
 
@@ -54,16 +65,16 @@ public final class ChunkPushMessage {
     public int hashCode() {
         int result = block.hashCode();
         result = 31 * result + chunk.hashCode();
-        result = 31 * result + chunkPayload.hashCode();
+        result = 31 * result + Arrays.hashCode(chunkPayload);
         return result;
     }
 
     @Override
     public String toString() {
-        return "SinglePushMessage{" +
+        return "ChunkPushMessage{" +
                "block=" + block +
                ", chunk=" + chunk +
-               ", chunkPayload=" + chunkPayload +
+               ", chunkPayload=" + Arrays.toString(chunkPayload) +
                '}';
     }
 }

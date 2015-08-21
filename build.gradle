@@ -6,8 +6,19 @@ task wrapper(type: Wrapper) {
     distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
 }
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.7.0'
+    }
+}
+
 apply plugin: 'java'
 apply plugin: 'idea'
+// apply plugin: 'com.android.application'  // or 'com.android.library'
+apply plugin: 'com.google.protobuf'
 
 sourceCompatibility = 1.8
 
@@ -25,6 +36,9 @@ dependencies {
     // SLF4J
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.12'
 
+
+    compile group: 'com.google.protobuf', name: 'protobuf-java', version: '2.6.1'
+
     // netty support
     compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha3-SNAPSHOT'
 
@@ -37,4 +51,15 @@ dependencies {
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.7.1-1.0', classifier: 'linux-x86'
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.7.1-1.0', classifier: 'android-arm'
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '2.7.1-1.0', classifier: 'android-x86'
+}
+
+protobuf {
+    // Configure the protoc executable
+    protoc {
+        // Download from repositories
+        artifact = 'com.google.protobuf:protoc:2.6.1'
+
+        // Change output of generated stuff
+        generatedFilesBaseDir = "$projectDir/src"
+    }
 }

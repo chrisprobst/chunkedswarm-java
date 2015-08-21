@@ -1,11 +1,12 @@
 package de.probst.chunkedswarm.net.netty.handler.connection;
 
-import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgeNeighboursEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.event.NeighbourConnectionEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNeighboursMessage;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDAcquisitionEvent;
 import de.probst.chunkedswarm.net.netty.handler.discovery.event.SwarmIDCollectionEvent;
+import de.probst.chunkedswarm.net.netty.handler.exception.ExceptionHandler;
+import de.probst.chunkedswarm.net.netty.util.NettyUtil;
 import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -19,8 +20,6 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +42,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
 
+    public static final int MAX_FORWARDER_FRAME_SIZE = 1024 * 1024;
     public static final long ACKNOWLEDGE_INTERVAL_MS = 1000;
 
     // The forwarder channel group
@@ -112,14 +112,14 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
                  .handler(new ChannelInitializer<Channel>() {
                      @Override
                      protected void initChannel(Channel ch) throws Exception {
-
                          // Codec
-                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
-                         ch.pipeline().addLast(new LengthFieldPrepender(4));
-                         ch.pipeline().addLast(new SimpleCodec());
+                         NettyUtil.addCodecToPipeline(ch.pipeline(), MAX_FORWARDER_FRAME_SIZE);
 
                          // The forwarder connection handler
                          ch.pipeline().addLast(new ForwarderConnectionHandler(localSwarmID));
+
+                         // Handle exception logic
+                         ch.pipeline().addLast(new ExceptionHandler("ForwarderToCollector"));
                      }
                  });
     }

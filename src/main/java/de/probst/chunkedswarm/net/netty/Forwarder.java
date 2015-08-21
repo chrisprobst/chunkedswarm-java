@@ -1,12 +1,13 @@
 package de.probst.chunkedswarm.net.netty;
 
-import de.probst.chunkedswarm.net.netty.handler.app.ForwarderHandler;
-import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.CollectorConnectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIDCollectionHandler;
+import de.probst.chunkedswarm.net.netty.handler.exception.ExceptionHandler;
+import de.probst.chunkedswarm.net.netty.handler.forwarding.ForwardingHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
+import de.probst.chunkedswarm.net.netty.util.NettyUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -20,8 +21,6 @@ import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -56,10 +55,7 @@ public final class Forwarder implements Closeable {
                            @Override
                            protected void initChannel(Channel ch) throws Exception {
                                // Codec
-                               ch.pipeline()
-                                 .addLast(new LengthFieldBasedFrameDecoder(MAX_COLLECTOR_FRAME_SIZE, 0, 4, 0, 4));
-                               ch.pipeline().addLast(new LengthFieldPrepender(4));
-                               ch.pipeline().addLast(new SimpleCodec());
+                               NettyUtil.addCodecToPipeline(ch.pipeline(), MAX_COLLECTOR_FRAME_SIZE);
 
                                // Track all channels
                                ch.pipeline().addLast(new ChannelGroupHandler(collectorChannels));
@@ -68,7 +64,8 @@ public final class Forwarder implements Closeable {
                                // Add the collector connections tracker
                                ch.pipeline().addLast(new CollectorConnectionHandler(distributorChannel));
 
-                               ch.pipeline().addLast(new ForwarderHandler());
+                               // Handle exception logic
+                               ch.pipeline().addLast(new ExceptionHandler("CollectorToForwarder"));
                            }
                        });
 
@@ -95,10 +92,7 @@ public final class Forwarder implements Closeable {
                      protected void initChannel(Channel ch) throws Exception {
 
                          // Codec
-                         ch.pipeline()
-                           .addLast(new LengthFieldBasedFrameDecoder(MAX_DISTRIBUTOR_FRAME_SIZE, 0, 4, 0, 4));
-                         ch.pipeline().addLast(new LengthFieldPrepender(4));
-                         ch.pipeline().addLast(new SimpleCodec());
+                         NettyUtil.addCodecToPipeline(ch.pipeline(), MAX_DISTRIBUTOR_FRAME_SIZE);
 
                          // Handle swarm id management
                          ch.pipeline().addLast(new SwarmIDCollectionHandler(collectorAcceptorAddress));
@@ -109,8 +103,11 @@ public final class Forwarder implements Closeable {
                                                                     engagedForwarderChannels,
                                                                     eventLoopGroup));
 
-                         // Handle application logic
-                         ch.pipeline().addLast(new ForwarderHandler());
+                         // Handle push messages, by forwarding them to all forwarder channels
+                         ch.pipeline().addLast(new ForwardingHandler(engagedForwarderChannels));
+
+                         // Handle exception logic
+                         ch.pipeline().addLast(new ExceptionHandler("ForwarderToDistributor"));
                      }
                  });
 

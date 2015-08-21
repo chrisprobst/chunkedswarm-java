@@ -19,6 +19,13 @@ public final class PushWriteRequest {
     private final ByteBuffer payload;
     private final Map<Channel, Integer> chunkMap;
 
+    private ByteBuffer getChunkPayload(int chunkIndex) {
+        ByteBuffer dup = payload.duplicate();
+        dup.position(block.getDefaultChunkSize() * chunkIndex);
+        dup.limit(block.getDefaultChunkSize() * chunkIndex + block.getChunkSize(chunkIndex));
+        return dup;
+    }
+
     public PushWriteRequest(BlockHeader block, ByteBuffer payload, Map<Channel, Integer> chunkMap) {
         Objects.requireNonNull(block);
         Objects.requireNonNull(payload);
@@ -28,22 +35,8 @@ public final class PushWriteRequest {
         this.chunkMap = Collections.unmodifiableMap(chunkMap);
     }
 
-    public BlockHeader getBlock() {
-        return block;
-    }
-
-    public ByteBuffer getChunkPayload(int chunkIndex) {
-        ByteBuffer dup = payload.duplicate();
-        dup.position(block.getDefaultChunkSize() * chunkIndex);
-        dup.limit(block.getDefaultChunkSize() * chunkIndex + block.getChunkSize(chunkIndex));
-        return dup;
-    }
-
-    public Map<Channel, Integer> getChunkMap() {
-        return chunkMap;
-    }
-
-    public ChunkPushMessage createChunkPushMessage(int chunkIndex) {
+    public ChunkPushMessage createChunkPushMessage(Channel channel) {
+        int chunkIndex = chunkMap.get(channel);
         return new ChunkPushMessage(block, block.getChunk(chunkIndex), getChunkPayload(chunkIndex));
     }
 

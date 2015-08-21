@@ -1,14 +1,14 @@
 package de.probst.chunkedswarm.net.netty;
 
-import de.probst.chunkedswarm.net.netty.handler.app.DistributorHandler;
-import de.probst.chunkedswarm.net.netty.handler.codec.SimpleCodec;
 import de.probst.chunkedswarm.net.netty.handler.connection.AcknowledgeConnectionsHandler;
 import de.probst.chunkedswarm.net.netty.handler.discovery.SwarmIDRegistrationHandler;
+import de.probst.chunkedswarm.net.netty.handler.exception.ExceptionHandler;
 import de.probst.chunkedswarm.net.netty.handler.group.ChannelGroupHandler;
 import de.probst.chunkedswarm.net.netty.handler.push.PushHandler;
 import de.probst.chunkedswarm.net.netty.handler.push.PushWriteRequestHandler;
 import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
 import de.probst.chunkedswarm.net.netty.util.CloseableChannelGroup;
+import de.probst.chunkedswarm.net.netty.util.NettyUtil;
 import de.probst.chunkedswarm.util.SwarmIDManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -21,8 +21,6 @@ import io.netty.channel.ServerChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -70,10 +68,7 @@ public final class Distributor implements Closeable {
                            @Override
                            protected void initChannel(Channel ch) throws Exception {
                                // Codec
-                               ch.pipeline()
-                                 .addLast(new LengthFieldBasedFrameDecoder(MAX_FORWARDER_FRAME_SIZE, 0, 4, 0, 4));
-                               ch.pipeline().addLast(new LengthFieldPrepender(4));
-                               ch.pipeline().addLast(new SimpleCodec());
+                               NettyUtil.addCodecToPipeline(ch.pipeline(), MAX_FORWARDER_FRAME_SIZE);
                                ch.pipeline().addLast(new PushWriteRequestHandler());
 
                                // Track all channels
@@ -85,8 +80,8 @@ public final class Distributor implements Closeable {
                                // Handle connection acknowledgements
                                ch.pipeline().addLast(new AcknowledgeConnectionsHandler());
 
-                               // Handle application logic
-                               ch.pipeline().addLast(new DistributorHandler());
+                               // Handle exception logic
+                               ch.pipeline().addLast(new ExceptionHandler("DistributorToForwarder"));
                            }
                        });
 

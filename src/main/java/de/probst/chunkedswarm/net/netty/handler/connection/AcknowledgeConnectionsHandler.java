@@ -37,6 +37,9 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     // The local swarm id
     private SwarmID localSwarmID;
 
+    // Whether or not we are registered
+    private boolean registered;
+
     private void fireRegisterAcknowledgedNeighboursEvent() {
         Channel parent = ctx.channel().parent();
         if (parent == null) {
@@ -50,9 +53,16 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
                                                                       Optional.empty(),
                                                                       localSwarmID,
                                                                       ctx.channel()));
+
+        // We are registered now
+        registered = true;
     }
 
     private void fireUpdateAcknowledgedNeighboursEvent(AcknowledgeNeighboursMessage msg) {
+        if (!registered) {
+            return;
+        }
+
         Channel parent = ctx.channel().parent();
         if (parent == null) {
             throw new IllegalStateException("parent == null");
@@ -68,7 +78,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     }
 
     private void fireUnregisterAcknowledgedNeighboursEvent() {
-        if (localSwarmID == null) {
+        if (!registered) {
             return;
         }
 
