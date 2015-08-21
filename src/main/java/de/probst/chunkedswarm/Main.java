@@ -27,7 +27,7 @@ public class Main {
 
             Map<Integer, Forwarder> portsToForwarders = new HashMap<>();
             Runnable createForwarder = () -> {
-                for (int i = 0; i < 30; i++) {
+                for (int i = 0; i < 100; i++) {
                     int k = i;
                     if (portsToForwarders.containsKey(k)) {
                         continue;

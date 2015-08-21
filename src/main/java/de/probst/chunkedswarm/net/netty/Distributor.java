@@ -38,6 +38,7 @@ import java.util.UUID;
  */
 public final class Distributor implements Closeable {
 
+    public static final int MAX_FORWARDER_FRAME_SIZE = 1024 * 1024 * 10;
     public static final int BACKLOG = 256;
 
     private final SwarmIDManager swarmIDManager;
@@ -69,7 +70,8 @@ public final class Distributor implements Closeable {
                            @Override
                            protected void initChannel(Channel ch) throws Exception {
                                // Codec
-                               ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024 * 1024, 0, 4, 0, 4));
+                               ch.pipeline()
+                                 .addLast(new LengthFieldBasedFrameDecoder(MAX_FORWARDER_FRAME_SIZE, 0, 4, 0, 4));
                                ch.pipeline().addLast(new LengthFieldPrepender(4));
                                ch.pipeline().addLast(new SimpleCodec());
                                ch.pipeline().addLast(new PushWriteRequestHandler());

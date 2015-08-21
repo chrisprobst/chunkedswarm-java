@@ -130,6 +130,7 @@ public final class BlockHeader implements Serializable {
                ", sequence=" + sequence +
                ", priority=" + priority +
                ", size=" + size +
+               ", defaultChunkSize=" + getDefaultChunkSize() +
                ", duration=" + duration +
                '}';
     }

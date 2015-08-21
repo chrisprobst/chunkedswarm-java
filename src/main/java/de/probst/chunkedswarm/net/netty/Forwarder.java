@@ -34,6 +34,8 @@ import java.util.Objects;
  */
 public final class Forwarder implements Closeable {
 
+    public static final int MAX_DISTRIBUTOR_FRAME_SIZE = 1024 * 1024 * 30;
+    public static final int MAX_COLLECTOR_FRAME_SIZE = 1024 * 1024 * 10;
     public static final int BACKLOG = 256;
 
     private final EventLoopGroup eventLoopGroup;
@@ -54,7 +56,8 @@ public final class Forwarder implements Closeable {
                            @Override
                            protected void initChannel(Channel ch) throws Exception {
                                // Codec
-                               ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(5 * 1024 * 1024, 0, 4, 0, 4));
+                               ch.pipeline()
+                                 .addLast(new LengthFieldBasedFrameDecoder(MAX_COLLECTOR_FRAME_SIZE, 0, 4, 0, 4));
                                ch.pipeline().addLast(new LengthFieldPrepender(4));
                                ch.pipeline().addLast(new SimpleCodec());
 
@@ -92,7 +95,8 @@ public final class Forwarder implements Closeable {
                      protected void initChannel(Channel ch) throws Exception {
 
                          // Codec
-                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(10 * 1024 * 1024, 0, 4, 0, 4));
+                         ch.pipeline()
+                           .addLast(new LengthFieldBasedFrameDecoder(MAX_DISTRIBUTOR_FRAME_SIZE, 0, 4, 0, 4));
                          ch.pipeline().addLast(new LengthFieldPrepender(4));
                          ch.pipeline().addLast(new SimpleCodec());
 

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -125,41 +126,22 @@ public final class PushHandler extends ChannelHandlerAdapter {
         return outboundGraph.findMeshes(masterUUID, inboundGraph);
     }
 
-    private Map<Channel, Integer> nodeGroupToChunkMap(NodeGroup<UUID> nodeGroup) {
-        PrimitiveIterator.OfInt idxs = IntStream.range(0, nodeGroup.getNodes().size()).iterator();
-        return nodeGroup.getNodes()
-                        .stream()
-                        .map(acknowledgedNeighbours::get)
-                        .map(AcknowledgedNeighboursEvent::getChannel)
-                        .collect(Collectors.toMap(c -> c, c -> idxs.next()));
-    }
 
-    private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
-        switch (evt.getType()) {
-            case Update:
-                acknowledgedNeighbours.put(evt.getLocalSwarmID().getUUID(), evt);
-                break;
-            case Dispose:
-                acknowledgedNeighbours.remove(evt.getLocalSwarmID().getUUID());
-                break;
-        }
-    }
-
-    private void handlePushEvent(PushEvent evt) {
-
-        // At first, compute all meshes
-        // Default policy takes just the biggest mesh
-        NodeGroups<UUID> meshes = computeMeshes();
-        if (meshes.getGroups().isEmpty()) {
+    private void pushGroups(PushEvent evt, NodeGroups<UUID> groups) {
+        // Nothing to push
+        if (groups.getGroups().isEmpty()) {
             logger.info("Nothing to push, node group empty");
             return;
         }
 
-        // Choose the largest group by default
-        NodeGroup<UUID> largestGroup = meshes.getGroups().get(0);
+        // Push each group
+        groups.getGroups().forEach(g -> pushGroup(evt, g));
+    }
+
+    private void pushGroup(PushEvent evt, NodeGroup<UUID> group) {
 
         // Create chunk map from largest node group
-        Map<Channel, Integer> chunkMap = nodeGroupToChunkMap(largestGroup);
+        Map<Channel, Integer> chunkMap = nodeGroupToChunkMap(group);
 
         // Collect vars
         ByteBuffer payload = evt.getPayload().duplicate();
@@ -200,6 +182,47 @@ public final class PushHandler extends ChannelHandlerAdapter {
                 pushFuture.cause().iterator().forEachRemaining(e -> logger.warn("Partial push failure", e.getValue()));
             }
         });
+    }
+
+    private NodeGroups<UUID> determinePushGroups() {
+
+        // At first, compute all meshes
+        // Default policy takes just the biggest mesh
+        NodeGroups<UUID> allMeshes = computeMeshes();
+
+        // Empty ? Return directly...
+        if (allMeshes.getGroups().isEmpty()) {
+            return allMeshes;
+        }
+
+        // Just consider the biggest mesh by default
+        return new NodeGroups<>(Collections.singletonList(allMeshes.getGroups().get(0)));
+    }
+
+    private Map<Channel, Integer> nodeGroupToChunkMap(NodeGroup<UUID> nodeGroup) {
+        PrimitiveIterator.OfInt idxs = IntStream.range(0, nodeGroup.getNodes().size()).iterator();
+        return nodeGroup.getNodes()
+                        .stream()
+                        .map(acknowledgedNeighbours::get)
+                        .map(AcknowledgedNeighboursEvent::getChannel)
+                        .collect(Collectors.toMap(c -> c, c -> idxs.next()));
+    }
+
+    private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
+        switch (evt.getType()) {
+            case Register:
+            case Update:
+                acknowledgedNeighbours.put(evt.getLocalSwarmID().getUUID(), evt);
+                break;
+            case Unregister:
+                acknowledgedNeighbours.remove(evt.getLocalSwarmID().getUUID());
+                break;
+        }
+    }
+
+    private void handlePushEvent(PushEvent evt) {
+        // Determine push groups and push
+        pushGroups(evt, determinePushGroups());
     }
 
     public PushHandler(ChannelGroup allChannels, UUID masterUUID) throws NoSuchAlgorithmException {

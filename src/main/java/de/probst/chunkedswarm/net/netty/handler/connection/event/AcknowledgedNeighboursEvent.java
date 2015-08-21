@@ -17,7 +17,7 @@ import java.util.UUID;
 public final class AcknowledgedNeighboursEvent {
 
     public enum Type {
-        Update, Dispose
+        Register, Update, Unregister
     }
 
     // The type of this event

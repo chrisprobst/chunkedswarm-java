@@ -37,10 +37,22 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     // The local swarm id
     private SwarmID localSwarmID;
 
-    // Did we have updated our parent once ?
-    private boolean hasUpdatedOnce;
+    private void fireRegisterAcknowledgedNeighboursEvent() {
+        Channel parent = ctx.channel().parent();
+        if (parent == null) {
+            throw new IllegalStateException("parent == null");
+        }
 
-    private void fireAcknowledgedNeighboursUpdateEvent(AcknowledgeNeighboursMessage msg) {
+        parent.pipeline()
+              .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Register,
+                                                                      acknowledgedOutboundNeighbours,
+                                                                      acknowledgedInboundNeighbours,
+                                                                      Optional.empty(),
+                                                                      localSwarmID,
+                                                                      ctx.channel()));
+    }
+
+    private void fireUpdateAcknowledgedNeighboursEvent(AcknowledgeNeighboursMessage msg) {
         Channel parent = ctx.channel().parent();
         if (parent == null) {
             throw new IllegalStateException("parent == null");
@@ -53,12 +65,10 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
                                                                       Optional.of(msg),
                                                                       localSwarmID,
                                                                       ctx.channel()));
-
-        hasUpdatedOnce = true;
     }
 
-    private void fireAcknowledgedNeighboursDisposeEvent() {
-        if (!hasUpdatedOnce) {
+    private void fireUnregisterAcknowledgedNeighboursEvent() {
+        if (localSwarmID == null) {
             return;
         }
 
@@ -68,7 +78,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
         }
 
         parent.pipeline()
-              .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Dispose,
+              .fireUserEventTriggered(new AcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent.Type.Unregister,
                                                                       acknowledgedOutboundNeighbours,
                                                                       acknowledgedInboundNeighbours,
                                                                       Optional.empty(),
@@ -77,7 +87,11 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
     }
 
     private void handleSwarmIDAcquisitionEvent(SwarmIDAcquisitionEvent evt) {
+        // Acquire local swarm id
         localSwarmID = evt.getSwarmID();
+
+        // Register
+        fireRegisterAcknowledgedNeighboursEvent();
     }
 
     private void acknowledgeNeighbours(AcknowledgeNeighboursMessage msg) {
@@ -85,7 +99,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
         msg.getRemovedOutboundNeighbours().forEach(acknowledgedOutboundNeighbours::remove);
         msg.getAddedInboundNeighbours().forEach(acknowledgedInboundNeighbours::add);
         msg.getRemovedInboundNeighbours().forEach(acknowledgedInboundNeighbours::remove);
-        fireAcknowledgedNeighboursUpdateEvent(msg);
+        fireUpdateAcknowledgedNeighboursEvent(msg);
     }
 
     @Override
@@ -114,7 +128,7 @@ public final class AcknowledgeConnectionsHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        fireAcknowledgedNeighboursDisposeEvent();
+        fireUnregisterAcknowledgedNeighboursEvent();
         super.channelInactive(ctx);
     }
 }
