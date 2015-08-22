@@ -2,7 +2,7 @@ package de.probst.chunkedswarm.net.netty.handler.codec.protobuf;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-import de.probst.chunkedswarm.io.util.IoUtil;
+import de.probst.chunkedswarm.io.util.IOUtil;
 import de.probst.chunkedswarm.net.netty.handler.codec.protobuf.ProtoMessages.BaseCommand;
 import de.probst.chunkedswarm.net.netty.handler.codec.protobuf.ProtoMessages.BaseCommand.CommandType;
 import de.probst.chunkedswarm.net.netty.handler.codec.protobuf.ProtoMessages.SerializableMsg;
@@ -25,12 +25,12 @@ public final class Message2ProtobufCodec extends MessageToMessageCodec<Message, 
         }
 
         SerializableMsg serializableMsg = baseCommand.getExtension(SerializableMsg.cmd);
-        out.add(IoUtil.deserialize(serializableMsg.getPayload().toByteArray()));
+        out.add(IOUtil.deserialize(serializableMsg.getPayload().toByteArray()));
     }
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {
-        byte[] arr = IoUtil.serialize(msg);
+        byte[] arr = IOUtil.serialize(msg);
 
         SerializableMsg serializableMsg = ProtoMessages.SerializableMsg.newBuilder()
                                                                        .setPayload(ByteString.copyFrom(arr))

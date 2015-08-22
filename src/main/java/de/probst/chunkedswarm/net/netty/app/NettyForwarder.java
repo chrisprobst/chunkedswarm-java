@@ -1,4 +1,4 @@
-package de.probst.chunkedswarm.net.netty;
+package de.probst.chunkedswarm.net.netty.app;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.CollectorConnectionHandler;
 import de.probst.chunkedswarm.net.netty.handler.connection.ForwarderConnectionsHandler;
@@ -31,7 +31,7 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 22.05.15
  */
-public final class Forwarder implements Closeable {
+public final class NettyForwarder implements Closeable {
 
     public static final int MAX_DISTRIBUTOR_FRAME_SIZE = 1024 * 1024 * 30;
     public static final int MAX_COLLECTOR_FRAME_SIZE = 1024 * 1024 * 10;
@@ -123,9 +123,9 @@ public final class Forwarder implements Closeable {
         return connectFuture;
     }
 
-    public Forwarder(EventLoopGroup eventLoopGroup,
-                     SocketAddress collectorAcceptorAddress,
-                     SocketAddress distributorAddress) {
+    public NettyForwarder(EventLoopGroup eventLoopGroup,
+                          SocketAddress collectorAcceptorAddress,
+                          SocketAddress distributorAddress) {
         Objects.requireNonNull(eventLoopGroup);
         Objects.requireNonNull(collectorAcceptorAddress);
         Objects.requireNonNull(distributorAddress);

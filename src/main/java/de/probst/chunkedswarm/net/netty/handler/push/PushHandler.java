@@ -1,7 +1,8 @@
 package de.probst.chunkedswarm.net.netty.handler.push;
 
 import de.probst.chunkedswarm.net.netty.handler.connection.event.AcknowledgedNeighboursEvent;
-import de.probst.chunkedswarm.net.netty.handler.push.event.PushEvent;
+import de.probst.chunkedswarm.net.netty.handler.push.event.PushCompletedEvent;
+import de.probst.chunkedswarm.net.netty.handler.push.event.PushRequestEvent;
 import de.probst.chunkedswarm.util.BlockHeader;
 import de.probst.chunkedswarm.util.Graph;
 import de.probst.chunkedswarm.util.Hash;
@@ -11,8 +12,6 @@ import de.probst.chunkedswarm.util.NodeGroups;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.ChannelGroupFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 /**
  * Handler sends to owner channel:
@@ -42,9 +40,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(PushHandler.class);
 
-    // All channels
-    private final ChannelGroup allChannels;
-
     // The master uuid, so nobody can choose this uuid
     private final UUID masterUUID;
 
@@ -52,12 +47,15 @@ public final class PushHandler extends ChannelHandlerAdapter {
     private final Map<UUID, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
 
     // Used to track pending pushes
-    private final Set<ChannelGroupFuture> pendingPushes = new LinkedHashSet<>();
+    private final Set<PushTracker> pendingPushes = new LinkedHashSet<>();
 
     // Used to compute hashes
     private final Hasher hasher = new Hasher();
 
-    private BlockHeader createBlockHeader(PushEvent evt, int chunkCount) {
+    // The context
+    private ChannelHandlerContext ctx;
+
+    private BlockHeader createBlockHeader(PushRequestEvent evt, int chunkCount) {
 
         // Create a split version of the block
         ByteBuffer dup = evt.getPayload().duplicate();
@@ -126,64 +124,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
         return outboundGraph.findMeshes(masterUUID, inboundGraph);
     }
 
-
-    private void pushGroups(PushEvent evt, NodeGroups<UUID> groups) {
-        // Nothing to push
-        if (groups.getGroups().isEmpty()) {
-            logger.info("Nothing to push, node group empty");
-            return;
-        }
-
-        // Push each group
-        groups.getGroups().forEach(g -> pushGroup(evt, g));
-    }
-
-    private void pushGroup(PushEvent evt, NodeGroup<UUID> group) {
-
-        // Create chunk map from largest node group
-        Map<Channel, Integer> chunkMap = nodeGroupToChunkMap(group);
-
-        // Collect vars
-        ByteBuffer payload = evt.getPayload().duplicate();
-        int chunkCount = chunkMap.size();
-
-        // TODO: Maybe just broadcasting ?
-        // Too small for chunking
-        if (payload.remaining() < chunkCount) {
-            logger.warn("payload.remaining() < chunkCount");
-            return;
-        }
-
-        // Create the block header
-        BlockHeader blockHeader = createBlockHeader(evt, chunkCount);
-
-        // Send block to all peers
-        ChannelGroupFuture pushFuture = allChannels.writeAndFlush(new PushWriteRequest(blockHeader, payload, chunkMap),
-                                                                  chunkMap.keySet()::contains);
-
-        // Compute statistics
-        long count = StreamSupport.stream(pushFuture.spliterator(), false).count();
-        logger.info("Pushing: " + blockHeader);
-
-        // Keep track of future
-        pendingPushes.add(pushFuture);
-        pushFuture.addListener(fut -> {
-
-            // Remove from pending
-            pendingPushes.remove(pushFuture);
-
-            // Compute statistics
-            long failed = !pushFuture.isSuccess() ? StreamSupport.stream(pushFuture.cause().spliterator(), false)
-                                                                 .count() : 0;
-            String rate = (count - failed) + "/" + count;
-            logger.info("Pushed: " + blockHeader + ", Success: " + rate);
-
-            if (!pushFuture.isSuccess()) {
-                pushFuture.cause().iterator().forEachRemaining(e -> logger.warn("Partial push failure", e.getValue()));
-            }
-        });
-    }
-
     private NodeGroups<UUID> determinePushGroups() {
 
         // At first, compute all meshes
@@ -208,6 +148,53 @@ public final class PushHandler extends ChannelHandlerAdapter {
                         .collect(Collectors.toMap(c -> c, c -> idxs.next()));
     }
 
+    private void pushGroups(PushRequestEvent evt, NodeGroups<UUID> groups) {
+        // Nothing to push
+        if (groups.getGroups().isEmpty()) {
+            logger.info("Nothing to push, node group empty");
+            return;
+        }
+
+        // Push each group
+        groups.getGroups().forEach(g -> pushGroup(evt, g));
+    }
+
+    private void firePushCompleted(PushTracker pushTracker) {
+        ctx.pipeline().fireUserEventTriggered(new PushCompletedEvent(pushTracker));
+    }
+
+    private void pushGroup(PushRequestEvent evt, NodeGroup<UUID> group) {
+
+        // Create chunk map from largest node group
+        Map<Channel, Integer> chunkMap = nodeGroupToChunkMap(group);
+
+        // Collect vars
+        ByteBuffer payload = evt.getPayload().duplicate();
+        int chunkCount = chunkMap.size();
+
+        // TODO: Maybe just broadcasting ?
+        // Too small for chunking
+        if (payload.remaining() < chunkCount) {
+            logger.warn("payload.remaining() < chunkCount");
+            return;
+        }
+
+        // Create the block header
+        BlockHeader blockHeader = createBlockHeader(evt, chunkCount);
+
+        // Send block to all peers
+        PushTracker pushTracker = new PushTracker(this::firePushCompleted, blockHeader, payload, chunkMap);
+
+        // Add the new push tracker tracker
+        pendingPushes.add(pushTracker);
+
+        // Start the push tracker
+        pushTracker.start();
+
+        // Compute statistics
+        logger.info("Pushing: " + pushTracker.getBlockHeader());
+    }
+
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
         switch (evt.getType()) {
             case Register:
@@ -220,24 +207,48 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
     }
 
-    private void handlePushEvent(PushEvent evt) {
+    private void handlePushRequestEvent(PushRequestEvent evt) {
         // Determine push groups and push
         pushGroups(evt, determinePushGroups());
     }
 
-    public PushHandler(ChannelGroup allChannels, UUID masterUUID) throws NoSuchAlgorithmException {
-        Objects.requireNonNull(allChannels);
+    private void handlePushCompletedEvent(PushCompletedEvent evt) {
+        // Remove the push tracker, it is not pending anymore
+        PushTracker pushTracker = evt.getPushTracker();
+        pendingPushes.remove(pushTracker);
+
+        // Compute statistics
+        long count = pushTracker.getChunkMap().size();
+
+        // Compute statistics
+        long failed = pushTracker.getFailedChannels().size();
+
+        String rate = (count - failed) + "/" + count;
+        logger.info("Pushed: " + pushTracker.getBlockHeader() + ", Success: " + rate);
+
+        // Log failed channels
+        pushTracker.getFailedChannels().forEach((c, f) -> logger.warn("Partial pushTracker failure", f.cause()));
+    }
+
+    public PushHandler(UUID masterUUID) throws NoSuchAlgorithmException {
         Objects.requireNonNull(masterUUID);
-        this.allChannels = allChannels;
         this.masterUUID = masterUUID;
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        this.ctx = ctx;
+        super.channelActive(ctx);
     }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof AcknowledgedNeighboursEvent) {
             handleAcknowledgedNeighboursEvent((AcknowledgedNeighboursEvent) evt);
-        } else if (evt instanceof PushEvent) {
-            handlePushEvent((PushEvent) evt);
+        } else if (evt instanceof PushRequestEvent) {
+            handlePushRequestEvent((PushRequestEvent) evt);
+        } else if (evt instanceof PushCompletedEvent) {
+            handlePushCompletedEvent((PushCompletedEvent) evt);
         }
 
         super.userEventTriggered(ctx, evt);

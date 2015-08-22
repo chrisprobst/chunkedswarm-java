@@ -8,14 +8,14 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 18.08.15
  */
-public final class PushEvent {
+public final class PushRequestEvent {
 
     private final ByteBuffer payload;
     private final int sequence;
     private final int priority;
     private final Duration duration;
 
-    public PushEvent(ByteBuffer payload, int sequence, int priority, Duration duration) {
+    public PushRequestEvent(ByteBuffer payload, int sequence, int priority, Duration duration) {
         Objects.requireNonNull(payload);
         Objects.requireNonNull(duration);
         this.payload = payload;
@@ -45,7 +45,7 @@ public final class PushEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        PushEvent pushEvent = (PushEvent) o;
+        PushRequestEvent pushEvent = (PushRequestEvent) o;
 
         if (sequence != pushEvent.sequence) return false;
         if (priority != pushEvent.priority) return false;

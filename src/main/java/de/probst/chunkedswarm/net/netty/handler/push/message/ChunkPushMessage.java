@@ -33,13 +33,19 @@ public final class ChunkPushMessage implements Serializable {
         chunkPayload = ByteBuffer.wrap((byte[]) s.readObject());
     }
 
-    public ChunkPushMessage(BlockHeader block, ChunkHeader chunk, ByteBuffer chunkPayload) {
+    public ChunkPushMessage(BlockHeader block, int chunkIndex, ByteBuffer payload) {
         Objects.requireNonNull(block);
-        Objects.requireNonNull(chunk);
-        Objects.requireNonNull(chunkPayload);
+        Objects.requireNonNull(payload);
         this.block = block;
-        this.chunk = chunk;
-        this.chunkPayload = chunkPayload;
+
+        // Create chunk for index
+        chunk = block.getChunk(chunkIndex);
+
+        // Slice the chunk payload
+        chunkPayload = payload.duplicate();
+        chunkPayload.position(block.getDefaultChunkSize() * chunk.getChunkIndex());
+        chunkPayload.limit(block.getDefaultChunkSize() * chunk.getChunkIndex() +
+                           block.getChunkSize(chunk.getChunkIndex()));
     }
 
     public BlockHeader getBlock() {

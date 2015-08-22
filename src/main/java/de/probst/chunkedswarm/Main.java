@@ -1,7 +1,7 @@
 package de.probst.chunkedswarm;
 
-import de.probst.chunkedswarm.net.netty.Distributor;
-import de.probst.chunkedswarm.net.netty.Forwarder;
+import de.probst.chunkedswarm.net.netty.app.NettyDistributor;
+import de.probst.chunkedswarm.net.netty.app.NettyForwarder;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
@@ -23,16 +23,16 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         try {
-            Distributor distributor = new Distributor(eventLoopGroup, new InetSocketAddress(1337));
+            NettyDistributor distributor = new NettyDistributor(eventLoopGroup, new InetSocketAddress(1337));
 
-            Map<Integer, Forwarder> portsToForwarders = new HashMap<>();
+            Map<Integer, NettyForwarder> portsToForwarders = new HashMap<>();
             Runnable createForwarder = () -> {
                 for (int i = 0; i < 100; i++) {
                     int k = i;
                     if (portsToForwarders.containsKey(k)) {
                         continue;
                     }
-                    Forwarder f = new Forwarder(eventLoopGroup,
+                    NettyForwarder f = new NettyForwarder(eventLoopGroup,
                                                 new InetSocketAddress(20000 + i),
                                                 new InetSocketAddress("kr0e.no-ip.info", 1337));
                     f.getInitFuture().addListener(fut -> {
@@ -51,7 +51,7 @@ public class Main {
                         if (portsToForwarders.isEmpty()) {
                             return;
                         }
-                        Map.Entry<Integer, Forwarder> entry = portsToForwarders.entrySet().iterator().next();
+                        Map.Entry<Integer, NettyForwarder> entry = portsToForwarders.entrySet().iterator().next();
                         portsToForwarders.remove(entry.getKey());
                         entry.getValue().close();
                         Thread.sleep(100);
@@ -62,7 +62,7 @@ public class Main {
             };
 
             // Create for the beginning
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 4; i++) {
                 createForwarder.run();
             }
 
@@ -101,7 +101,7 @@ public class Main {
                 e.printStackTrace();
             }
 
-            for (Forwarder forwarder : portsToForwarders.values()) {
+            for (NettyForwarder forwarder : portsToForwarders.values()) {
                 try {
                     forwarder.close();
                 } catch (IOException e) {

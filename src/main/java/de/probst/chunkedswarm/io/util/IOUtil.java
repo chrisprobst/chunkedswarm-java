@@ -17,7 +17,7 @@ import java.util.zip.GZIPOutputStream;
 /**
  * Created by chrisprobst on 18.08.14.
  */
-public final class IoUtil {
+public final class IOUtil {
 
     public static final int DEFAULT_TRANSFER_BUFFER_SIZE = 65535;
 
