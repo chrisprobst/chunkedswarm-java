@@ -31,7 +31,10 @@ import java.util.stream.IntStream;
 
 /**
  * Handler sends to owner channel:
- * - PushEvent
+ * - PushCompletedEvent
+ * <p>
+ * Handler listens to:
+ * - PushRequestEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 18.08.15
@@ -55,29 +58,8 @@ public final class PushHandler extends ChannelHandlerAdapter {
     // The context
     private ChannelHandlerContext ctx;
 
-    private BlockHeader createBlockHeader(PushRequestEvent evt, int chunkCount) {
-
-        // Create a split version of the block
-        ByteBuffer dup = evt.getPayload().duplicate();
-        int size = dup.remaining();
-
-        // Compute hash for payload
-        Hash hash = hasher.computeHash(dup.duplicate());
-
-        // Compute all chunk hashes
-        List<Hash> chunkHashes = IntStream.range(0, chunkCount).mapToObj(i -> {
-            // Compute limit for chunk and return computed chunk
-            dup.limit(dup.position() + BlockHeader.computeChunkSize(size, chunkCount, i));
-            return hasher.computeHash(dup);
-        }).collect(Collectors.toList());
-
-        // Create the block header for the push event
-        return new BlockHeader(hash,
-                               chunkHashes,
-                               evt.getSequence(),
-                               evt.getPriority(),
-                               size,
-                               evt.getDuration());
+    private void firePushCompleted(PushTracker pushTracker) {
+        ctx.pipeline().fireUserEventTriggered(new PushCompletedEvent(pushTracker));
     }
 
     private NodeGroups<UUID> computeMeshes() {
@@ -136,6 +118,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
 
         // Just consider the biggest mesh by default
+        // TODO: Maybe multiple groups ?
         return new NodeGroups<>(Collections.singletonList(allMeshes.getGroups().get(0)));
     }
 
@@ -148,6 +131,31 @@ public final class PushHandler extends ChannelHandlerAdapter {
                         .collect(Collectors.toMap(c -> c, c -> idxs.next()));
     }
 
+    private BlockHeader createBlockHeader(PushRequestEvent evt, int chunkCount) {
+
+        // Create a split version of the block
+        ByteBuffer dup = evt.getPayload().duplicate();
+        int size = dup.remaining();
+
+        // Compute hash for payload
+        Hash hash = hasher.computeHash(dup.duplicate());
+
+        // Compute all chunk hashes
+        List<Hash> chunkHashes = IntStream.range(0, chunkCount).mapToObj(i -> {
+            // Compute limit for chunk and return computed chunk
+            dup.limit(dup.position() + BlockHeader.computeChunkSize(size, chunkCount, i));
+            return hasher.computeHash(dup);
+        }).collect(Collectors.toList());
+
+        // Create the block header for the push event
+        return new BlockHeader(hash,
+                               chunkHashes,
+                               evt.getSequence(),
+                               evt.getPriority(),
+                               size,
+                               evt.getDuration());
+    }
+
     private void pushGroups(PushRequestEvent evt, NodeGroups<UUID> groups) {
         // Nothing to push
         if (groups.getGroups().isEmpty()) {
@@ -157,10 +165,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
 
         // Push each group
         groups.getGroups().forEach(g -> pushGroup(evt, g));
-    }
-
-    private void firePushCompleted(PushTracker pushTracker) {
-        ctx.pipeline().fireUserEventTriggered(new PushCompletedEvent(pushTracker));
     }
 
     private void pushGroup(PushRequestEvent evt, NodeGroup<UUID> group) {
