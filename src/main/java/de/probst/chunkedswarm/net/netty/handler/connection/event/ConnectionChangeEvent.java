@@ -9,7 +9,7 @@ import java.util.Objects;
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 30.05.15
  */
-public final class NeighbourConnectionEvent {
+public final class ConnectionChangeEvent {
 
     public enum Direction {
         Inbound, Outbound
@@ -24,10 +24,10 @@ public final class NeighbourConnectionEvent {
     private final Direction direction;
     private final Type type;
 
-    public NeighbourConnectionEvent(SwarmID swarmID,
-                                    Channel channel,
-                                    Direction direction,
-                                    Type type) {
+    public ConnectionChangeEvent(SwarmID swarmID,
+                                 Channel channel,
+                                 Direction direction,
+                                 Type type) {
         Objects.requireNonNull(swarmID);
         Objects.requireNonNull(channel);
         Objects.requireNonNull(direction);
@@ -59,7 +59,7 @@ public final class NeighbourConnectionEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        NeighbourConnectionEvent that = (NeighbourConnectionEvent) o;
+        ConnectionChangeEvent that = (ConnectionChangeEvent) o;
 
         if (!swarmID.equals(that.swarmID)) return false;
         if (!channel.equals(that.channel)) return false;
@@ -79,7 +79,7 @@ public final class NeighbourConnectionEvent {
 
     @Override
     public String toString() {
-        return "NeighbourConnectionEvent{" +
+        return "ForwarderConnectionEvent{" +
                "swarmID=" + swarmID +
                ", channel=" + channel +
                ", direction=" + direction +

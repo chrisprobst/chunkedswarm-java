@@ -1,6 +1,5 @@
-package de.probst.chunkedswarm.net.netty.handler.push.message;
+package de.probst.chunkedswarm.net.netty.handler.forwarding.message;
 
-import de.probst.chunkedswarm.util.BlockHeader;
 import de.probst.chunkedswarm.util.ChunkHeader;
 
 import java.io.IOException;
@@ -12,25 +11,14 @@ import java.util.Objects;
 
 /**
  * @author Christopher Probst <christopher.probst@hhu.de>
- * @version 1.0, 20.08.15
+ * @version 1.0, 23.08.15
  */
-public final class ChunkPushMessage implements Serializable {
-
-    public static ChunkPushMessage createFrom(BlockHeader blockHeader, int chunkIndex, ByteBuffer chunkPayload) {
-
-        // Create chunk header for index
-        ChunkHeader chunkHeader = blockHeader.getChunk(chunkIndex);
-
-        // Slice the chunk header payload
-        chunkPayload = chunkPayload.duplicate();
-        chunkPayload.position(blockHeader.getDefaultChunkSize() * chunkHeader.getChunkIndex());
-        chunkPayload.limit(blockHeader.getDefaultChunkSize() * chunkHeader.getChunkIndex() +
-                           blockHeader.getChunkSize(chunkHeader.getChunkIndex()));
-
-        return new ChunkPushMessage(blockHeader, chunkHeader, chunkPayload);
+public final class ChunkForwardingMessage implements Serializable {
+    
+    public static ChunkForwardingMessage createFrom(ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
+        return new ChunkForwardingMessage(chunkHeader, chunkPayload.duplicate());
     }
 
-    private final BlockHeader blockHeader;
     private final ChunkHeader chunkHeader;
     private transient ByteBuffer chunkPayload;
 
@@ -47,17 +35,11 @@ public final class ChunkPushMessage implements Serializable {
         chunkPayload = ByteBuffer.wrap((byte[]) s.readObject());
     }
 
-    private ChunkPushMessage(BlockHeader blockHeader, ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
-        Objects.requireNonNull(blockHeader);
+    private ChunkForwardingMessage(ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
         Objects.requireNonNull(chunkHeader);
         Objects.requireNonNull(chunkPayload);
-        this.blockHeader = blockHeader;
         this.chunkHeader = chunkHeader;
         this.chunkPayload = chunkPayload;
-    }
-
-    public BlockHeader getBlockHeader() {
-        return blockHeader;
     }
 
     public ChunkHeader getChunkHeader() {
@@ -73,9 +55,8 @@ public final class ChunkPushMessage implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ChunkPushMessage that = (ChunkPushMessage) o;
+        ChunkForwardingMessage that = (ChunkForwardingMessage) o;
 
-        if (!blockHeader.equals(that.blockHeader)) return false;
         if (!chunkHeader.equals(that.chunkHeader)) return false;
         return chunkPayload.equals(that.chunkPayload);
 
@@ -83,17 +64,15 @@ public final class ChunkPushMessage implements Serializable {
 
     @Override
     public int hashCode() {
-        int result = blockHeader.hashCode();
-        result = 31 * result + chunkHeader.hashCode();
+        int result = chunkHeader.hashCode();
         result = 31 * result + chunkPayload.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return "ChunkPushMessage{" +
-               "blockHeader=" + blockHeader +
-               ", chunkHeader=" + chunkHeader +
+        return "ChunkForwardingMessage{" +
+               "chunkHeader=" + chunkHeader +
                ", chunkPayload=" + chunkPayload +
                '}';
     }

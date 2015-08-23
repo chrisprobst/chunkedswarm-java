@@ -1,6 +1,9 @@
 package de.probst.chunkedswarm.util;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -10,6 +13,11 @@ import java.util.Objects;
  */
 public final class Hash implements Serializable {
 
+    public static Hash computeSHA1(ByteBuffer byteBuffer) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("sha1");
+        digest.update(byteBuffer);
+        return new Hash(digest.digest());
+    }
 
     private final byte[] bytes;
 

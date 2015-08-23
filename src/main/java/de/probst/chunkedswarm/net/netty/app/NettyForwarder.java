@@ -40,7 +40,7 @@ public final class NettyForwarder implements Closeable {
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress collectorAcceptorAddress;
     private final Channel distributorChannel;
-    private final ChannelGroup collectorChannels, engagedForwarderChannels, allChannels;
+    private final ChannelGroup collectorChannels, allChannels;
 
     // Represents the result of initialization
     private final ChannelPromise initChannelPromise;
@@ -99,12 +99,10 @@ public final class NettyForwarder implements Closeable {
 
                          // Handle forwarder connections based on swarm id collections
                          ch.pipeline()
-                           .addLast(new ForwarderConnectionsHandler(allChannels,
-                                                                    engagedForwarderChannels,
-                                                                    eventLoopGroup));
+                           .addLast(new ForwarderConnectionsHandler(allChannels, eventLoopGroup));
 
                          // Handle push messages, by forwarding them to all forwarder channels
-                         ch.pipeline().addLast(new ForwardingHandler(engagedForwarderChannels));
+                         ch.pipeline().addLast(new ForwardingHandler());
 
                          // Handle exception logic
                          ch.pipeline().addLast(new ExceptionHandler("ForwarderToDistributor"));
@@ -134,7 +132,6 @@ public final class NettyForwarder implements Closeable {
         this.eventLoopGroup = eventLoopGroup;
         this.collectorAcceptorAddress = collectorAcceptorAddress;
         collectorChannels = new DefaultChannelGroup(eventLoopGroup.next());
-        engagedForwarderChannels = new DefaultChannelGroup(eventLoopGroup.next());
         allChannels = new CloseableChannelGroup(eventLoopGroup.next());
 
         // *********************************************

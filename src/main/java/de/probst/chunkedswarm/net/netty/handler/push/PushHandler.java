@@ -5,8 +5,6 @@ import de.probst.chunkedswarm.net.netty.handler.push.event.PushCompletedEvent;
 import de.probst.chunkedswarm.net.netty.handler.push.event.PushRequestEvent;
 import de.probst.chunkedswarm.util.BlockHeader;
 import de.probst.chunkedswarm.util.Graph;
-import de.probst.chunkedswarm.util.Hash;
-import de.probst.chunkedswarm.util.Hasher;
 import de.probst.chunkedswarm.util.NodeGroup;
 import de.probst.chunkedswarm.util.NodeGroups;
 import io.netty.channel.Channel;
@@ -20,7 +18,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PrimitiveIterator;
@@ -51,9 +48,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
 
     // Used to track pending pushes
     private final Set<PushTracker> pendingPushes = new LinkedHashSet<>();
-
-    // Used to compute hashes
-    private final Hasher hasher = new Hasher();
 
     // The context
     private ChannelHandlerContext ctx;
@@ -131,32 +125,11 @@ public final class PushHandler extends ChannelHandlerAdapter {
                         .collect(Collectors.toMap(c -> c, c -> idxs.next()));
     }
 
-    private BlockHeader createBlockHeader(PushRequestEvent evt, int chunkCount) {
-
-        // Create a split version of the block
-        ByteBuffer dup = evt.getPayload().duplicate();
-        int size = dup.remaining();
-
-        // Compute hash for payload
-        Hash hash = hasher.computeHash(dup.duplicate());
-
-        // Compute all chunk hashes
-        List<Hash> chunkHashes = IntStream.range(0, chunkCount).mapToObj(i -> {
-            // Compute limit for chunk and return computed chunk
-            dup.limit(dup.position() + BlockHeader.computeChunkSize(size, chunkCount, i));
-            return hasher.computeHash(dup);
-        }).collect(Collectors.toList());
-
-        // Create the block header for the push event
-        return new BlockHeader(hash,
-                               chunkHashes,
-                               evt.getSequence(),
-                               evt.getPriority(),
-                               size,
-                               evt.getDuration());
+    private void cancelPendingPushTrackers() {
+        // TODO: Implement
     }
 
-    private void pushGroups(PushRequestEvent evt, NodeGroups<UUID> groups) {
+    private void pushGroups(PushRequestEvent evt, NodeGroups<UUID> groups) throws NoSuchAlgorithmException {
         // Nothing to push
         if (groups.getGroups().isEmpty()) {
             logger.info("Nothing to push, node group empty");
@@ -164,39 +137,41 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
 
         // Push each group
-        groups.getGroups().forEach(g -> pushGroup(evt, g));
+        for (NodeGroup<UUID> uuidNodeGroup : groups.getGroups()) {
+            pushGroup(evt, uuidNodeGroup);
+        }
     }
 
-    private void pushGroup(PushRequestEvent evt, NodeGroup<UUID> group) {
+    private void pushGroup(PushRequestEvent evt, NodeGroup<UUID> group) throws NoSuchAlgorithmException {
 
         // Create chunk map from largest node group
         Map<Channel, Integer> chunkMap = nodeGroupToChunkMap(group);
 
         // Collect vars
         ByteBuffer payload = evt.getPayload().duplicate();
-        int chunkCount = chunkMap.size();
 
-        // TODO: Maybe just broadcasting ?
-        // Too small for chunking
-        if (payload.remaining() < chunkCount) {
-            logger.warn("payload.remaining() < chunkCount");
-            return;
-        }
+        // Determine chunk count
+        // If less bytes than peers: Simply send whole block to every one
+        // Chunk count == 1 always means no forwarding
+        int chunkCount = payload.remaining() < chunkMap.size() ? 1 : chunkMap.size();
 
         // Create the block header
-        BlockHeader blockHeader = createBlockHeader(evt, chunkCount);
+        // Very costly, invoke in thread pool
+        BlockHeader blockHeader = BlockHeader.createFrom(evt.getPayload(),
+                                                         evt.getSequence(),
+                                                         evt.getPriority(),
+                                                         evt.getDuration(),
+                                                         chunkCount);
 
         // Send block to all peers
-        PushTracker pushTracker = new PushTracker(this::firePushCompleted, blockHeader, payload, chunkMap);
+        PushTracker pushTracker = PushTracker.createFrom(this::firePushCompleted, blockHeader, payload, chunkMap);
 
-        // Add the new push tracker tracker
+        // Add the new push tracker
         pendingPushes.add(pushTracker);
-
-        // Start the push tracker
-        pushTracker.start();
 
         // Compute statistics
         logger.info("Pushing: " + pushTracker.getBlockHeader());
+
     }
 
     private void handleAcknowledgedNeighboursEvent(AcknowledgedNeighboursEvent evt) {
@@ -211,7 +186,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
         }
     }
 
-    private void handlePushRequestEvent(PushRequestEvent evt) {
+    private void handlePushRequestEvent(PushRequestEvent evt) throws NoSuchAlgorithmException {
         // Determine push groups and push
         pushGroups(evt, determinePushGroups());
     }
@@ -234,7 +209,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
         pushTracker.getFailedChannels().forEach((c, f) -> logger.warn("Partial pushTracker failure", f.cause()));
     }
 
-    public PushHandler(UUID masterUUID) throws NoSuchAlgorithmException {
+    public PushHandler(UUID masterUUID) {
         Objects.requireNonNull(masterUUID);
         this.masterUUID = masterUUID;
     }
@@ -243,6 +218,12 @@ public final class PushHandler extends ChannelHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
         super.channelActive(ctx);
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        cancelPendingPushTrackers();
+        super.channelInactive(ctx);
     }
 
     @Override

@@ -40,6 +40,7 @@ public final class NettyDistributor implements Closeable {
 
     private final SwarmIDManager swarmIDManager;
     private final UUID masterUUID;
+    private final EventLoopGroup bossEventLoopGroup;
     private final EventLoopGroup eventLoopGroup;
     private final SocketAddress socketAddress;
     private final ChannelGroup allChannels;
@@ -50,7 +51,7 @@ public final class NettyDistributor implements Closeable {
 
     private ChannelFuture openForwarderAcceptChannel() {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
-        serverBootstrap.group(eventLoopGroup)
+        serverBootstrap.group(bossEventLoopGroup, eventLoopGroup)
                        .channel(NioServerSocketChannel.class)
                        .option(ChannelOption.SO_BACKLOG, BACKLOG)
                        .handler(new ChannelInitializer<ServerChannel>() {
@@ -59,6 +60,9 @@ public final class NettyDistributor implements Closeable {
 
                                // The parent channel is used for pushing data
                                ch.pipeline().addLast(new PushHandler(masterUUID));
+
+                               // Handle exception logic
+                               ch.pipeline().addLast(new ExceptionHandler("DistributorAcceptor"));
                            }
                        })
                        .childOption(ChannelOption.TCP_NODELAY, true)
@@ -94,12 +98,16 @@ public final class NettyDistributor implements Closeable {
         return bindFuture;
     }
 
-    public NettyDistributor(EventLoopGroup eventLoopGroup, SocketAddress socketAddress) {
+    public NettyDistributor(EventLoopGroup bossEventLoopGroup,
+                            EventLoopGroup eventLoopGroup,
+                            SocketAddress socketAddress) {
+        Objects.requireNonNull(bossEventLoopGroup);
         Objects.requireNonNull(eventLoopGroup);
         Objects.requireNonNull(socketAddress);
 
         // Init attributes
         swarmIDManager = new SwarmIDManager();
+        this.bossEventLoopGroup = bossEventLoopGroup;
         this.eventLoopGroup = eventLoopGroup;
         this.socketAddress = socketAddress;
         allChannels = new CloseableChannelGroup(eventLoopGroup.next());

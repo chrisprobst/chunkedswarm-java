@@ -4,6 +4,7 @@ import de.probst.chunkedswarm.net.netty.handler.connection.message.AcknowledgeNe
 import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,8 +53,8 @@ public final class AcknowledgedNeighboursEvent {
         Objects.requireNonNull(channel);
 
         this.type = type;
-        this.acknowledgedOutboundNeighbours = new HashSet<>(acknowledgedOutboundNeighbours);
-        this.acknowledgedInboundNeighbours = new HashSet<>(acknowledgedInboundNeighbours);
+        this.acknowledgedOutboundNeighbours = Collections.unmodifiableSet(new HashSet<>(acknowledgedOutboundNeighbours));
+        this.acknowledgedInboundNeighbours = Collections.unmodifiableSet(new HashSet<>(acknowledgedInboundNeighbours));
         this.acknowledgeNeighboursMessage = acknowledgeNeighboursMessage;
         this.localSwarmID = localSwarmID;
         this.channel = channel;

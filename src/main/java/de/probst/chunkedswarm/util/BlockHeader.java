@@ -1,7 +1,10 @@
 package de.probst.chunkedswarm.util;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -31,6 +34,38 @@ public final class BlockHeader implements Serializable {
 
         // Return appropriate value
         return chunkIndex == chunks - 1 ? lastChunkSize : chunkSize;
+    }
+
+    public static BlockHeader createFrom(ByteBuffer payload,
+                                         int sequence,
+                                         int priority,
+                                         Duration duration,
+                                         int chunkCount) throws NoSuchAlgorithmException {
+        Objects.requireNonNull(payload);
+        Objects.requireNonNull(duration);
+
+        // Create a split version of the block
+        ByteBuffer dup = payload.duplicate();
+        int size = dup.remaining();
+
+        // Compute hash for payload
+        Hash hash = Hash.computeSHA1(dup.duplicate());
+
+        // Compute all chunk hashes
+        List<Hash> chunkHashes = new ArrayList<>(chunkCount);
+        for (int i = 0; i < chunkCount; i++) {
+            // Compute limit for chunk and return computed chunk
+            dup.limit(dup.position() + BlockHeader.computeChunkSize(size, chunkCount, i));
+            chunkHashes.add(Hash.computeSHA1(dup));
+        }
+
+        // Create the block header for the push event
+        return new BlockHeader(hash,
+                               chunkHashes,
+                               sequence,
+                               priority,
+                               size,
+                               duration);
     }
 
     private final Hash hash;
@@ -127,10 +162,12 @@ public final class BlockHeader implements Serializable {
     public String toString() {
         return "BlockHeader{" +
                "hash=" + hash +
+               ", chunkCount=" + getChunkCount() +
                ", sequence=" + sequence +
                ", priority=" + priority +
                ", size=" + size +
                ", defaultChunkSize=" + getDefaultChunkSize() +
+               ", lastChunkSize=" + getChunkSize(getChunkCount() - 1) +
                ", duration=" + duration +
                '}';
     }

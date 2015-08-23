@@ -21,9 +21,12 @@ public class Main {
 
 
     public static void main(String[] args) throws InterruptedException, IOException {
+        EventLoopGroup bossEventLoopGroup = new NioEventLoopGroup(1);
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         try {
-            NettyDistributor distributor = new NettyDistributor(eventLoopGroup, new InetSocketAddress(1337));
+            NettyDistributor distributor = new NettyDistributor(bossEventLoopGroup,
+                                                                eventLoopGroup,
+                                                                new InetSocketAddress(1337));
 
             Map<Integer, NettyForwarder> portsToForwarders = new HashMap<>();
             Runnable createForwarder = () -> {
@@ -33,8 +36,8 @@ public class Main {
                         continue;
                     }
                     NettyForwarder f = new NettyForwarder(eventLoopGroup,
-                                                new InetSocketAddress(20000 + i),
-                                                new InetSocketAddress("kr0e.no-ip.info", 1337));
+                                                          new InetSocketAddress(20000 + i),
+                                                          new InetSocketAddress("localhost", 1337));
                     f.getInitFuture().addListener(fut -> {
                         if (!fut.isSuccess()) {
                             System.out.println("Peer " + k + " connection result: " + fut.cause());
@@ -66,7 +69,7 @@ public class Main {
                 createForwarder.run();
             }
 
-            ByteBuffer buf = ByteBuffer.allocateDirect(1024 * 1024 * 10);
+            ByteBuffer buf = ByteBuffer.allocateDirect(10);
             while (buf.hasRemaining()) {
                 buf.put((byte) (Math.random() * 256));
             }

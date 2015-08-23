@@ -1,6 +1,6 @@
 package de.probst.chunkedswarm.net.netty.handler.connection;
 
-import de.probst.chunkedswarm.net.netty.handler.connection.event.NeighbourConnectionEvent;
+import de.probst.chunkedswarm.net.netty.handler.connection.event.ConnectionChangeEvent;
 import de.probst.chunkedswarm.net.netty.handler.connection.message.SetForwarderSwarmIDMessage;
 import de.probst.chunkedswarm.util.SwarmID;
 import io.netty.channel.Channel;
@@ -11,7 +11,7 @@ import java.util.Objects;
 
 /**
  * Handler sends to report channel:
- * - NeighbourConnectionEvent
+ * - ConnectionChangeEvent
  *
  * @author Christopher Probst <christopher.probst@hhu.de>
  * @version 1.0, 28.07.15
@@ -26,27 +26,27 @@ public final class CollectorConnectionHandler extends ChannelHandlerAdapter {
 
     private SwarmID forwarderSwarmID;
 
-    private void fireChannelConnected() {
+    private void fireInboundConnected() {
         if (forwarderSwarmID == null) {
             throw new IllegalStateException("forwarderSwarmID == null");
         }
         reportChannel.pipeline()
-                     .fireUserEventTriggered(new NeighbourConnectionEvent(forwarderSwarmID,
-                                                                          ctx.channel(),
-                                                                          NeighbourConnectionEvent.Direction.Inbound,
-                                                                          NeighbourConnectionEvent.Type.Connected));
+                     .fireUserEventTriggered(new ConnectionChangeEvent(forwarderSwarmID,
+                                                                       ctx.channel(),
+                                                                       ConnectionChangeEvent.Direction.Inbound,
+                                                                       ConnectionChangeEvent.Type.Connected));
     }
 
-    private void fireChannelDisconnected() {
+    private void fireInboundDisconnected() {
         if (forwarderSwarmID == null) {
             return;
         }
 
         reportChannel.pipeline()
-                     .fireUserEventTriggered(new NeighbourConnectionEvent(forwarderSwarmID,
-                                                                          ctx.channel(),
-                                                                          NeighbourConnectionEvent.Direction.Inbound,
-                                                                          NeighbourConnectionEvent.Type.Disconnected));
+                     .fireUserEventTriggered(new ConnectionChangeEvent(forwarderSwarmID,
+                                                                       ctx.channel(),
+                                                                       ConnectionChangeEvent.Direction.Inbound,
+                                                                       ConnectionChangeEvent.Type.Disconnected));
     }
 
     private void setForwarderSwarmID(SetForwarderSwarmIDMessage msg) {
@@ -54,7 +54,7 @@ public final class CollectorConnectionHandler extends ChannelHandlerAdapter {
         forwarderSwarmID = msg.getForwarderSwarmID();
 
         // Let handler chain know, that we have acquired our swarm id
-        fireChannelConnected();
+        fireInboundConnected();
     }
 
     public CollectorConnectionHandler(Channel reportChannel) {
@@ -70,7 +70,7 @@ public final class CollectorConnectionHandler extends ChannelHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        fireChannelDisconnected();
+        fireInboundDisconnected();
         super.channelInactive(ctx);
     }
 

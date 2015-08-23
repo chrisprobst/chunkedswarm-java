@@ -3,6 +3,7 @@ package de.probst.chunkedswarm.net.netty.handler.discovery.event;
 import de.probst.chunkedswarm.net.netty.handler.discovery.message.UpdateNeighboursMessage;
 import de.probst.chunkedswarm.util.SwarmID;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -19,7 +20,7 @@ public final class SwarmIDCollectionEvent {
     public SwarmIDCollectionEvent(Set<SwarmID> swarmIDs, UpdateNeighboursMessage updateNeighboursMessage) {
         Objects.requireNonNull(swarmIDs);
         Objects.requireNonNull(updateNeighboursMessage);
-        this.swarmIDs = new HashSet<>(swarmIDs);
+        this.swarmIDs = Collections.unmodifiableSet(new HashSet<>(swarmIDs));
         this.updateNeighboursMessage = updateNeighboursMessage;
     }
 
