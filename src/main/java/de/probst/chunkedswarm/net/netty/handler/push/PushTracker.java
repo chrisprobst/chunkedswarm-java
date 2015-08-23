@@ -23,7 +23,7 @@ public final class PushTracker {
     private final Consumer<PushTracker> callback;
     private final BlockHeader blockHeader;
     private final ByteBuffer payload;
-    private final Map<Channel, Integer> chunkMap;
+    private final Map<Channel, Integer> channels;
 
     private final AtomicInteger counter = new AtomicInteger();
     private final ConcurrentMap<Channel, ChannelFuture> successfulChannels = new ConcurrentHashMap<>();
@@ -32,18 +32,18 @@ public final class PushTracker {
     static PushTracker createFrom(Consumer<PushTracker> callback,
                                   BlockHeader blockHeader,
                                   ByteBuffer payload,
-                                  Map<Channel, Integer> chunkMap) {
-        PushTracker pushTracker = new PushTracker(callback, blockHeader, payload, chunkMap);
+                                  Map<Channel, Integer> channels) {
+        PushTracker pushTracker = new PushTracker(callback, blockHeader, payload, channels);
         pushTracker.writeAndFlushAll();
         return pushTracker;
     }
 
     private void writeAndFlushAll() {
         // Start push operation for each channel
-        chunkMap.forEach((c, i) -> {
+        channels.forEach((c, i) -> {
 
             // Determine chunk index
-            int chunkIndex = blockHeader.getChunkCount() == chunkMap.size() ? i : 0;
+            int chunkIndex = blockHeader.getChunkCount() == channels.size() ? i : 0;
 
             // Create new chunk push message and write
             c.writeAndFlush(ChunkPushMessage.createFrom(blockHeader, chunkIndex, payload)).addListener(fut -> {
@@ -58,7 +58,7 @@ public final class PushTracker {
 
                 // Check atomically, if all pending write requests are finished
                 // If true, all results are definitely added to the maps
-                if (counter.incrementAndGet() == chunkMap.size()) {
+                if (counter.incrementAndGet() == channels.size()) {
                     callback.accept(this);
                 }
             });
@@ -68,19 +68,23 @@ public final class PushTracker {
     private PushTracker(Consumer<PushTracker> callback,
                         BlockHeader blockHeader,
                         ByteBuffer payload,
-                        Map<Channel, Integer> chunkMap) {
+                        Map<Channel, Integer> channels) {
         Objects.requireNonNull(callback);
         Objects.requireNonNull(blockHeader);
         Objects.requireNonNull(payload);
-        Objects.requireNonNull(chunkMap);
+        Objects.requireNonNull(channels);
         this.callback = callback;
         this.blockHeader = blockHeader;
         this.payload = payload;
-        this.chunkMap = Collections.unmodifiableMap(chunkMap);
+        this.channels = Collections.unmodifiableMap(channels);
+
+        if (channels.isEmpty()) {
+            throw new IllegalArgumentException("channels.isEmpty()");
+        }
     }
 
     public boolean isCompleted() {
-        return counter.get() == chunkMap.size();
+        return counter.get() == channels.size();
     }
 
     public BlockHeader getBlockHeader() {
@@ -91,8 +95,8 @@ public final class PushTracker {
         return payload;
     }
 
-    public Map<Channel, Integer> getChunkMap() {
-        return chunkMap;
+    public Map<Channel, Integer> getChannels() {
+        return channels;
     }
 
     public Map<Channel, ChannelFuture> getSuccessfulChannels() {
@@ -109,7 +113,7 @@ public final class PushTracker {
                "callback=" + callback +
                ", blockHeader=" + blockHeader +
                ", payload=" + payload +
-               ", chunkMap=" + chunkMap +
+               ", channels=" + channels +
                ", counter=" + counter +
                ", successfulChannels=" + successfulChannels +
                ", failedChannels=" + failedChannels +

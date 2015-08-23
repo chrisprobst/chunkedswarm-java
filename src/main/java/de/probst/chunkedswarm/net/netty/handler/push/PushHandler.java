@@ -47,7 +47,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
     private final Map<UUID, AcknowledgedNeighboursEvent> acknowledgedNeighbours = new HashMap<>();
 
     // Used to track pending pushes
-    private final Set<PushTracker> pendingPushes = new LinkedHashSet<>();
+    private final Set<PushTracker> pendingPushTrackers = new LinkedHashSet<>();
 
     // The context
     private ChannelHandlerContext ctx;
@@ -167,7 +167,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
         PushTracker pushTracker = PushTracker.createFrom(this::firePushCompleted, blockHeader, payload, chunkMap);
 
         // Add the new push tracker
-        pendingPushes.add(pushTracker);
+        pendingPushTrackers.add(pushTracker);
 
         // Compute statistics
         logger.info("Pushing: " + pushTracker.getBlockHeader());
@@ -194,10 +194,10 @@ public final class PushHandler extends ChannelHandlerAdapter {
     private void handlePushCompletedEvent(PushCompletedEvent evt) {
         // Remove the push tracker, it is not pending anymore
         PushTracker pushTracker = evt.getPushTracker();
-        pendingPushes.remove(pushTracker);
+        pendingPushTrackers.remove(pushTracker);
 
         // Compute statistics
-        long count = pushTracker.getChunkMap().size();
+        long count = pushTracker.getChannels().size();
 
         // Compute statistics
         long failed = pushTracker.getFailedChannels().size();
