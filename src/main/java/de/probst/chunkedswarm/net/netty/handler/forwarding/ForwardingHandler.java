@@ -24,8 +24,13 @@ public final class ForwardingHandler extends ChannelHandlerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(ForwardingHandler.class);
 
+    // Used to track pending forwarding trackers
     private final Set<ForwardingTracker> pendingForwardingTrackers = new LinkedHashSet<>();
+
+    // The channel handler context
     private ChannelHandlerContext ctx;
+
+    // Latest known engaged outbound channels
     private Map<SwarmID, Channel> engagedOutboundChannels = Collections.emptyMap();
 
     private void fireForwardingCompleted(ForwardingTracker forwardingTracker) {
@@ -37,7 +42,6 @@ public final class ForwardingHandler extends ChannelHandlerAdapter {
             engagedOutboundChannels = evt.getEngagedConnections();
         }
     }
-
 
     private void handleChunkPushMessage(ChunkPushMessage msg) {
         if (engagedOutboundChannels.isEmpty()) {
