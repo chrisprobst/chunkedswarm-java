@@ -29,7 +29,7 @@ public final class ChunkHeader implements Serializable {
     public int getSize() {
         return size;
     }
-
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

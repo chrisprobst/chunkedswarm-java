@@ -164,7 +164,7 @@ public final class PushHandler extends ChannelHandlerAdapter {
                                                          chunkCount);
 
         // Send block to all peers
-        PushTracker pushTracker = PushTracker.createFrom(this::firePushCompleted, blockHeader, payload, chunkMap);
+        PushTracker pushTracker = new PushTracker(this::firePushCompleted, blockHeader, payload, chunkMap);
 
         // Add the new push tracker
         pendingPushTrackers.add(pushTracker);
@@ -200,13 +200,15 @@ public final class PushHandler extends ChannelHandlerAdapter {
         long count = pushTracker.getChannels().size();
 
         // Compute statistics
-        long failed = pushTracker.getFailedChannels().size();
+        long failed = pushTracker.getChannelFutureTracker().getFailedChannels().size();
 
         String rate = (count - failed) + "/" + count;
         logger.info("Pushed: " + pushTracker.getBlockHeader() + ", Success: " + rate);
 
         // Log failed channels
-        pushTracker.getFailedChannels().forEach((c, f) -> logger.warn("Partial pushTracker failure", f.cause()));
+        pushTracker.getChannelFutureTracker().getFailedChannels().forEach((c, f) -> logger.warn(
+                "Partial pushTracker failure",
+                f.cause()));
     }
 
     public PushHandler(UUID masterUUID) {

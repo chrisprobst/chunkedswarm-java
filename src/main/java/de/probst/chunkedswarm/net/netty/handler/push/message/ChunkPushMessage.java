@@ -16,20 +16,6 @@ import java.util.Objects;
  */
 public final class ChunkPushMessage implements Serializable {
 
-    public static ChunkPushMessage createFrom(BlockHeader blockHeader, int chunkIndex, ByteBuffer chunkPayload) {
-
-        // Create chunk header for index
-        ChunkHeader chunkHeader = blockHeader.getChunk(chunkIndex);
-
-        // Slice the chunk header payload
-        chunkPayload = chunkPayload.duplicate();
-        chunkPayload.position(blockHeader.getDefaultChunkSize() * chunkHeader.getChunkIndex());
-        chunkPayload.limit(blockHeader.getDefaultChunkSize() * chunkHeader.getChunkIndex() +
-                           blockHeader.getChunkSize(chunkHeader.getChunkIndex()));
-
-        return new ChunkPushMessage(blockHeader, chunkHeader, chunkPayload);
-    }
-
     private final BlockHeader blockHeader;
     private final ChunkHeader chunkHeader;
     private transient ByteBuffer chunkPayload;
@@ -47,7 +33,7 @@ public final class ChunkPushMessage implements Serializable {
         chunkPayload = ByteBuffer.wrap((byte[]) s.readObject());
     }
 
-    private ChunkPushMessage(BlockHeader blockHeader, ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
+    public ChunkPushMessage(BlockHeader blockHeader, ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
         Objects.requireNonNull(blockHeader);
         Objects.requireNonNull(chunkHeader);
         Objects.requireNonNull(chunkPayload);

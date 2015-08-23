@@ -49,11 +49,11 @@ public final class ForwardingHandler extends ChannelHandlerAdapter {
             return;
         }
 
-        ForwardingTracker forwardingTracker = ForwardingTracker.createFrom(this::fireForwardingCompleted,
-                                                                           msg.getBlockHeader(),
-                                                                           msg.getChunkHeader(),
-                                                                           msg.getChunkPayload(),
-                                                                           engagedOutboundChannels.values());
+        ForwardingTracker forwardingTracker = new ForwardingTracker(this::fireForwardingCompleted,
+                                                                    msg.getBlockHeader(),
+                                                                    msg.getChunkHeader(),
+                                                                    msg.getChunkPayload(),
+                                                                    engagedOutboundChannels.values());
 
         // Add the new forwarding tracker
         pendingForwardingTrackers.add(forwardingTracker);
@@ -71,13 +71,13 @@ public final class ForwardingHandler extends ChannelHandlerAdapter {
         long count = forwardingTracker.getChannels().size();
 
         // Compute statistics
-        long failed = forwardingTracker.getFailedChannels().size();
+        long failed = forwardingTracker.getChannelFutureTracker().getFailedChannels().size();
 
         String rate = (count - failed) + "/" + count;
         logger.info("Forwarded: " + forwardingTracker.getBlockHeader() + ", Success: " + rate);
 
         // Log failed channels
-        forwardingTracker.getFailedChannels()
+        forwardingTracker.getChannelFutureTracker().getFailedChannels()
                          .forEach((c, f) -> logger.warn("Partial forwardingTracker failure", f.cause()));
     }
 

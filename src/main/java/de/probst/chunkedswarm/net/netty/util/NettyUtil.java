@@ -18,7 +18,7 @@ public final class NettyUtil {
     private NettyUtil() {
     }
 
-    public static final void addCodecToPipeline(ChannelPipeline channelPipeline, int maxFrameSize) {
+    public static void addCodecToPipeline(ChannelPipeline channelPipeline, int maxFrameSize) {
         ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
         ProtoMessages.registerAllExtensions(extensionRegistry);
 

@@ -14,10 +14,6 @@ import java.util.Objects;
  * @version 1.0, 23.08.15
  */
 public final class ChunkForwardingMessage implements Serializable {
-    
-    public static ChunkForwardingMessage createFrom(ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
-        return new ChunkForwardingMessage(chunkHeader, chunkPayload.duplicate());
-    }
 
     private final ChunkHeader chunkHeader;
     private transient ByteBuffer chunkPayload;
@@ -35,11 +31,11 @@ public final class ChunkForwardingMessage implements Serializable {
         chunkPayload = ByteBuffer.wrap((byte[]) s.readObject());
     }
 
-    private ChunkForwardingMessage(ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
+    public ChunkForwardingMessage(ChunkHeader chunkHeader, ByteBuffer chunkPayload) {
         Objects.requireNonNull(chunkHeader);
         Objects.requireNonNull(chunkPayload);
         this.chunkHeader = chunkHeader;
-        this.chunkPayload = chunkPayload;
+        this.chunkPayload = chunkPayload.duplicate();
     }
 
     public ChunkHeader getChunkHeader() {

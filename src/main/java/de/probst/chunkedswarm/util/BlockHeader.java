@@ -123,12 +123,24 @@ public final class BlockHeader implements Serializable {
         return computeChunkSize(size, chunkHashes.size(), chunkIndex);
     }
 
-    public ChunkHeader getChunk(int chunkIndex) {
+    public ChunkHeader getChunkHeader(int chunkIndex) {
         return new ChunkHeader(sequence, chunkIndex, getChunkSize(chunkIndex));
     }
 
-    public Stream<ChunkHeader> getChunks() {
-        return IntStream.range(0, getChunkCount()).mapToObj(this::getChunk);
+    public Stream<ChunkHeader> getChunkHeaders() {
+        return IntStream.range(0, getChunkCount()).mapToObj(this::getChunkHeader);
+    }
+
+    public ByteBuffer sliceChunkPayload(int chunkIndex, ByteBuffer payload) {
+        // Create chunk header for index
+        ChunkHeader chunkHeader = getChunkHeader(chunkIndex);
+
+        // Slice payload
+        ByteBuffer chunkPayload = payload.duplicate();
+        chunkPayload.position(getDefaultChunkSize() * chunkHeader.getChunkIndex());
+        chunkPayload.limit(getDefaultChunkSize() * chunkHeader.getChunkIndex() +
+                           getChunkSize(chunkHeader.getChunkIndex()));
+        return chunkPayload;
     }
 
     @Override
