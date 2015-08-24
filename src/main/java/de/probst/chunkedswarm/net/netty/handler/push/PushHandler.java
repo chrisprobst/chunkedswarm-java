@@ -156,7 +156,6 @@ public final class PushHandler extends ChannelHandlerAdapter {
         int chunkCount = payload.remaining() < chunkMap.size() ? 1 : chunkMap.size();
 
         // Create the block header
-        // Very costly, invoke in thread pool
         BlockHeader blockHeader = BlockHeader.createFrom(evt.getPayload(),
                                                          evt.getSequence(),
                                                          evt.getPriority(),
