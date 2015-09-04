@@ -205,9 +205,10 @@ public final class PushHandler extends ChannelHandlerAdapter {
         logger.info("Pushed: " + pushTracker.getBlockHeader() + ", Success: " + rate);
 
         // Log failed channels
-        pushTracker.getChannelFutureTracker().getFailedChannels().forEach((c, f) -> logger.warn(
-                "Partial pushTracker failure",
-                f.cause()));
+        pushTracker.getChannelFutureTracker().getFailedChannels().forEach((c, f) -> {
+            logger.warn("Closing channel due to partial pushTracker failure", f.cause().getMessage());
+            c.close();
+        });
     }
 
     public PushHandler(UUID masterUUID) {

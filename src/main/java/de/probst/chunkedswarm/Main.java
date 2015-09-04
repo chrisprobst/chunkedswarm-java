@@ -37,7 +37,7 @@ public class Main {
                     }
                     NettyForwarder f = new NettyForwarder(eventLoopGroup,
                                                           new InetSocketAddress(20000 + i),
-                                                          new InetSocketAddress("localhost", 1337));
+                                                          new InetSocketAddress("kr0e.no-ip.info", 1337));
                     f.getInitFuture().addListener(fut -> {
                         if (!fut.isSuccess()) {
                             System.out.println("Peer " + k + " connection result: " + fut.cause());
@@ -69,7 +69,7 @@ public class Main {
                 createForwarder.run();
             }
 
-            ByteBuffer buf = ByteBuffer.allocateDirect(10);
+            ByteBuffer buf = ByteBuffer.allocateDirect(1024*1024*200);
             while (buf.hasRemaining()) {
                 buf.put((byte) (Math.random() * 256));
             }

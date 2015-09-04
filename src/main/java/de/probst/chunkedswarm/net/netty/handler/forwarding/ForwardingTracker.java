@@ -2,6 +2,7 @@ package de.probst.chunkedswarm.net.netty.handler.forwarding;
 
 import de.probst.chunkedswarm.net.netty.handler.forwarding.message.ChunkForwardingMessage;
 import de.probst.chunkedswarm.net.netty.util.ChannelFutureTracker;
+import de.probst.chunkedswarm.net.netty.util.NettyUtil;
 import de.probst.chunkedswarm.util.BlockHeader;
 import de.probst.chunkedswarm.util.ChunkHeader;
 import io.netty.channel.Channel;
@@ -45,12 +46,16 @@ public final class ForwardingTracker {
             throw new IllegalArgumentException("channels.isEmpty()");
         }
 
+        // Create forwarding message
+        ChunkForwardingMessage chunkForwardingMessage = new ChunkForwardingMessage(chunkHeader, chunkPayload);
+
         // Write all and start channel future tracker
         Collection<ChannelFuture> cfs = channels.stream()
-                                                .map(c -> c.writeAndFlush(new ChunkForwardingMessage(chunkHeader,
-                                                                                                     chunkPayload)))
+                                                .map(c -> NettyUtil.writeAndFlushWithTimeout(c,
+                                                                                             chunkForwardingMessage,
+                                                                                             blockHeader.getDuration()))
                                                 .collect(Collectors.toList());
-        channelFutureTracker = new ChannelFutureTracker(cfs, cft -> callback.accept(ForwardingTracker.this));
+        channelFutureTracker = new ChannelFutureTracker(cfs, cft -> callback.accept(this));
     }
 
     public BlockHeader getBlockHeader() {

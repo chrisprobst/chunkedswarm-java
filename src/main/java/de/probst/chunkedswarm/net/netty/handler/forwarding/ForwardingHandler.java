@@ -77,8 +77,10 @@ public final class ForwardingHandler extends ChannelHandlerAdapter {
         logger.info("Forwarded: " + forwardingTracker.getBlockHeader() + ", Success: " + rate);
 
         // Log failed channels
-        forwardingTracker.getChannelFutureTracker().getFailedChannels()
-                         .forEach((c, f) -> logger.warn("Partial forwardingTracker failure", f.cause()));
+        forwardingTracker.getChannelFutureTracker().getFailedChannels().forEach((c, f) -> {
+            logger.warn("Closing channel due to partial forwardingTracker failure", f.cause().getMessage());
+            c.close();
+        });
     }
 
     @Override

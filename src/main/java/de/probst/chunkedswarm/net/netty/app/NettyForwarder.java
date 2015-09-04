@@ -33,8 +33,8 @@ import java.util.Objects;
  */
 public final class NettyForwarder implements Closeable {
 
-    public static final int MAX_DISTRIBUTOR_FRAME_SIZE = 1024 * 1024 * 30;
-    public static final int MAX_COLLECTOR_FRAME_SIZE = 1024 * 1024 * 10;
+    public static final int MAX_DISTRIBUTOR_FRAME_SIZE = 1024 * 1024 * 300;
+    public static final int MAX_COLLECTOR_FRAME_SIZE = 1024 * 1024 * 100;
     public static final int BACKLOG = 256;
 
     private final EventLoopGroup eventLoopGroup;

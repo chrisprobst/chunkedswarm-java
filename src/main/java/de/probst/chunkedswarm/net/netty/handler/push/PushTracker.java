@@ -2,6 +2,7 @@ package de.probst.chunkedswarm.net.netty.handler.push;
 
 import de.probst.chunkedswarm.net.netty.handler.push.message.ChunkPushMessage;
 import de.probst.chunkedswarm.net.netty.util.ChannelFutureTracker;
+import de.probst.chunkedswarm.net.netty.util.NettyUtil;
 import de.probst.chunkedswarm.util.BlockHeader;
 import io.netty.channel.Channel;
 
@@ -42,11 +43,13 @@ public final class PushTracker {
         // Write all and start channel future tracker
         channelFutureTracker = new ChannelFutureTracker(channels.entrySet().stream().map(e -> {
             int chunkIndex = blockHeader.getChunkCount() == channels.size() ? e.getValue() : 0;
-            return e.getKey()
-                    .writeAndFlush(new ChunkPushMessage(blockHeader,
-                                                        blockHeader.getChunkHeader(chunkIndex),
-                                                        blockHeader.sliceChunkPayload(chunkIndex, payload)));
-        }).collect(Collectors.toList()), chf -> callback.accept(PushTracker.this));
+            return NettyUtil.writeAndFlushWithTimeout(e.getKey(),
+                                                      new ChunkPushMessage(blockHeader,
+                                                                           blockHeader.getChunkHeader(chunkIndex),
+                                                                           blockHeader.sliceChunkPayload(chunkIndex,
+                                                                                                         payload)),
+                                                      blockHeader.getDuration());
+        }).collect(Collectors.toList()), chf -> callback.accept(this));
     }
 
     public BlockHeader getBlockHeader() {
