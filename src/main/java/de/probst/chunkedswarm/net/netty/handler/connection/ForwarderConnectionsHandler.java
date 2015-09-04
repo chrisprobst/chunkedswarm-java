@@ -169,10 +169,16 @@ public final class ForwarderConnectionsHandler extends ChannelHandlerAdapter {
     }
 
     private void disconnectBySwarmID(SwarmID swarmID) {
+        // Disconnect outbound peer
         if (engagedOutboundConnections.containsKey(swarmID)) {
             engagedOutboundConnections.get(swarmID).close();
         } else if (pendingOutboundConnections.containsKey(swarmID)) {
             pendingOutboundConnections.get(swarmID).channel().close();
+        }
+
+        // Disconnect inbound peers
+        if (engagedInboundConnections.containsKey(swarmID)) {
+            engagedInboundConnections.get(swarmID).close();
         }
     }
 

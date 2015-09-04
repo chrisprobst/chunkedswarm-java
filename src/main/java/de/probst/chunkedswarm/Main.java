@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 
 /**
@@ -29,7 +30,7 @@ public class Main {
                                                                 new InetSocketAddress(1337));
 
             Map<Integer, NettyForwarder> portsToForwarders = new HashMap<>();
-            Runnable createForwarder = () -> {
+            Consumer<Boolean> createForwarder = local -> {
                 for (int i = 0; i < 100; i++) {
                     int k = i;
                     if (portsToForwarders.containsKey(k)) {
@@ -37,7 +38,8 @@ public class Main {
                     }
                     NettyForwarder f = new NettyForwarder(eventLoopGroup,
                                                           new InetSocketAddress(20000 + i),
-                                                          new InetSocketAddress("kr0e.no-ip.info", 1337));
+                                                          new InetSocketAddress(local ? "localhost" : "kr0e.no-ip.info",
+                                                                                1337));
                     f.getInitFuture().addListener(fut -> {
                         if (!fut.isSuccess()) {
                             System.out.println("Peer " + k + " connection result: " + fut.cause());
@@ -64,12 +66,18 @@ public class Main {
                 }
             };
 
-            // Create for the beginning
-            for (int i = 0; i < 4; i++) {
-                createForwarder.run();
+            // Create remotes for the beginning
+            for (int i = 0; i < 2; i++) {
+                createForwarder.accept(false);
             }
 
-            ByteBuffer buf = ByteBuffer.allocateDirect(1024*1024*200);
+            // Create locals for the beginning
+            for (int i = 0; i < 2; i++) {
+                createForwarder.accept(true);
+            }
+
+
+            ByteBuffer buf = ByteBuffer.allocateDirect(1024 * 1024 * 200);
             while (buf.hasRemaining()) {
                 buf.put((byte) (Math.random() * 256));
             }
@@ -84,7 +92,7 @@ public class Main {
                 } else if (c == 'k') {
                     kill.run();
                 } else if (c == 'a') {
-                    createForwarder.run();
+                    //createForwarder.run();
                 } else if (c == 'p') {
 
                     distributor.distribute(buf.duplicate(), seq, 0, Duration.ofSeconds(10));

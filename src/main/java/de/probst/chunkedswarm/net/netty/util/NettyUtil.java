@@ -37,8 +37,6 @@ public final class NettyUtil {
         });
         channel.eventLoop()
                .schedule(() -> {
-                   System.out.println(channelFuture.isCancellable());
-                   channelFuture.cancel(true);
                    channelPromise.tryFailure(new TimeoutException());
                }, timeout.toMillis(), TimeUnit.MILLISECONDS);
         return channelPromise;
