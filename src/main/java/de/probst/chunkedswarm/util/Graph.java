@@ -66,6 +66,10 @@ public final class Graph<T> implements Cloneable {
         Graph<T> graphClone = clone();
         Graph<T> intersectionGraphClone = intersectionGraph.clone();
 
+        // Make sure, the graphs have no unidirectional links
+        graphClone.removeUnidirectionalLinks();
+        intersectionGraphClone.removeUnidirectionalLinks();
+
         // Lookup the neighbours
         NodeGroup<T> revNeighbours = graphClone.nodes.get(root);
         if (revNeighbours == null) {
@@ -80,10 +84,6 @@ public final class Graph<T> implements Cloneable {
 
         // Make intersection
         NodeGroup<T> revNeighboursIntersection = revNeighbours.intersection(revIntersectionNeighbours);
-
-        // Make sure, the graphs have no unidirectional links
-        graphClone.removeUnidirectionalLinks();
-        intersectionGraphClone.removeUnidirectionalLinks();
 
         // Here we store all mesh candidates
         NodeGroups<T> meshCandidates = new NodeGroups<>();
@@ -147,7 +147,7 @@ public final class Graph<T> implements Cloneable {
     public static void main(String[] args) {
         Graph<Integer> g = new Graph<>();
         Graph<Integer> g2 = new Graph<>();
-        int count = 100;
+        int count = 10000;
 
         // Create g links
         for (int i = 0; i < count; i++) {
@@ -175,15 +175,14 @@ public final class Graph<T> implements Cloneable {
 
         // Create expected values
         NodeGroup<Integer> expected = new NodeGroup<>();
-        for (int i = 0; i < count; i += 2) {
+        for (int i = 0; i < count; i += 1) {
             if (i != 0) {
                 expected.getNodes().add(i);
             }
         }
 
         // Find all meshes of the nodes
-        NodeGroups<Integer> meshes = g.findMeshes(0, g2);
-
+        NodeGroups<Integer> meshes = g.findMeshes(0, g);
         System.out.println(meshes.equals(new NodeGroups<>(Collections.singletonList(expected))));
     }
 }
